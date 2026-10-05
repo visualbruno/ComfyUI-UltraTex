@@ -1,0 +1,4 @@
+trimesh
+moderngl
+xatlas
+scipy

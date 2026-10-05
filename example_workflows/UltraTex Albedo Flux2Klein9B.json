@@ -1,0 +1,1001 @@
+{
+  "id": "518730f6-ad18-4baf-bfee-757f47061db9",
+  "revision": 0,
+  "last_node_id": 22,
+  "last_link_id": 23,
+  "nodes": [
+    {
+      "id": 2,
+      "type": "UltraTexPrep",
+      "pos": [
+        1021.276039785902,
+        510.5794088041175
+      ],
+      "size": [
+        319.74375,
+        218
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "reference_image",
+          "type": "IMAGE",
+          "link": 20
+        },
+        {
+          "name": "reference_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": 21
+        },
+        {
+          "name": "trimesh",
+          "shape": 7,
+          "type": "TRIMESH",
+          "link": 23
+        }
+      ],
+      "outputs": [
+        {
+          "name": "prep",
+          "type": "ULTRATEX_PREP",
+          "links": [
+            9,
+            14
+          ]
+        },
+        {
+          "name": "normal_views",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "reference",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "ver": "unknown",
+        "Node name for S&R": "UltraTexPrep"
+      },
+      "widgets_values": [
+        "",
+        4096,
+        4096,
+        "xatlas",
+        "fit_front_silhouette",
+        "background (LoadImage)"
+      ],
+      "widgets_values_named": {
+        "mesh_path": "",
+        "render_size": 4096,
+        "atlas_size": 4096,
+        "uv_mode": "xatlas",
+        "reference_alignment": "fit_front_silhouette",
+        "mask_meaning": "background (LoadImage)"
+      }
+    },
+    {
+      "id": 4,
+      "type": "UltraTexSampler",
+      "pos": [
+        1558.688332566256,
+        -20.436428418409548
+      ],
+      "size": [
+        307.080078125,
+        282
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 6
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 8
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 11
+        },
+        {
+          "name": "prep",
+          "type": "ULTRATEX_PREP",
+          "link": 9
+        },
+        {
+          "name": "negative",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "views",
+          "type": "IMAGE",
+          "links": [
+            15,
+            17
+          ]
+        },
+        {
+          "name": "masks",
+          "type": "MASK",
+          "links": null
+        },
+        {
+          "name": "atlas",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "ver": "unknown",
+        "Node name for S&R": "UltraTexSampler"
+      },
+      "widgets_values": [
+        1024,
+        25,
+        12345,
+        "fixed",
+        4,
+        true,
+        28
+      ],
+      "widgets_values_named": {
+        "resolution": 1024,
+        "steps": 25,
+        "seed": 12345,
+        "control_after_generate": "fixed",
+        "guidance": 4,
+        "drop_background_tokens": true,
+        "memory_factor": 28
+      }
+    },
+    {
+      "id": 5,
+      "type": "UNETLoader",
+      "pos": [
+        448.48052371385296,
+        -286.4424891954208
+      ],
+      "size": [
+        415.1999999999998,
+        82
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "flux-2-klein-base-9b-fp8.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "flux-2-klein-base-9b-fp8.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 6,
+      "type": "VAELoader",
+      "pos": [
+        463.14460070020783,
+        -142.95321400926366
+      ],
+      "size": [
+        349.05338256835944,
+        60.420000000000016
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "flux2-vae.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "flux2-vae.safetensors"
+      }
+    },
+    {
+      "id": 7,
+      "type": "UltraTexLoraLoader",
+      "pos": [
+        994.6954253177219,
+        -279.1739671830919
+      ],
+      "size": [
+        324.6597035461425,
+        82
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "ver": "unknown",
+        "Node name for S&R": "UltraTexLoraLoader"
+      },
+      "widgets_values": [
+        "ultratex_flux2.safetensors",
+        1
+      ],
+      "widgets_values_named": {
+        "lora_name": "ultratex_flux2.safetensors",
+        "strength": 1
+      }
+    },
+    {
+      "id": 8,
+      "type": "UltraTexForegroundDecoder",
+      "pos": [
+        952.6635776289183,
+        -115.23490271470806
+      ],
+      "size": [
+        371.67549417114253,
+        61.904296453857455
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "ver": "unknown",
+        "Node name for S&R": "UltraTexForegroundDecoder"
+      },
+      "widgets_values": [
+        "ultratex_flux2_decoder.pt"
+      ],
+      "widgets_values_named": {
+        "decoder_name": "ultratex_flux2_decoder.pt"
+      }
+    },
+    {
+      "id": 9,
+      "type": "CLIPLoader",
+      "pos": [
+        468.41648214280826,
+        -14.856115552775039
+      ],
+      "size": [
+        355.5066912841796,
+        126.16661743164059
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            10,
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "qwen_3_8b_fp8mixed.safetensors",
+        "flux2",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+        "type": "flux2",
+        "device": "default"
+      }
+    },
+    {
+      "id": 10,
+      "type": "CLIPTextEncode",
+      "pos": [
+        965.2469833079016,
+        0.9000820248073801
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            11
+          ]
+        }
+      ],
+      "title": "CLIP Text Encode (Prompt) Positive",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "text": ""
+      }
+    },
+    {
+      "id": 11,
+      "type": "CLIPTextEncode",
+      "pos": [
+        992.0845241004084,
+        282.28247048305906
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 12
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            13
+          ]
+        }
+      ],
+      "title": "CLIP Text Encode (Prompt) Negative",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "text": ""
+      }
+    },
+    {
+      "id": 12,
+      "type": "UltraTexBake",
+      "pos": [
+        1993.8582493004678,
+        -39.6780839782716
+      ],
+      "size": [
+        335.267578125,
+        234
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prep",
+          "type": "ULTRATEX_PREP",
+          "link": 14
+        },
+        {
+          "name": "albedo_views",
+          "type": "IMAGE",
+          "link": 15
+        },
+        {
+          "name": "metallic_roughness_views",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "trimesh",
+          "type": "TRIMESH",
+          "links": []
+        },
+        {
+          "name": "albedo_texture",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "preview",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "name": "glb_path",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "model_3d",
+          "type": "FILE_3D_GLB",
+          "links": [
+            22
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "ver": "unknown",
+        "Node name for S&R": "UltraTexBake"
+      },
+      "widgets_values": [
+        2048,
+        "UltraTex/DwarfWarrior",
+        4,
+        0.5,
+        6
+      ],
+      "widgets_values_named": {
+        "texture_size": 2048,
+        "filename_prefix": "UltraTex/DwarfWarrior",
+        "view_weight_power": 4,
+        "best_view_mix": 0.5,
+        "edge_feather_px": 6
+      }
+    },
+    {
+      "id": 15,
+      "type": "Preview3DAdvanced",
+      "pos": [
+        2451.3322558218124,
+        4.448855441501307
+      ],
+      "size": [
+        536.6494416503906,
+        684.8747208251951
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model_3d",
+          "type": "FILE_3D_GLB,FILE_3D_GLTF,FILE_3D_FBX,FILE_3D_OBJ,FILE_3D_STL,FILE_3D_USDZ,FILE_3D",
+          "link": 22
+        },
+        {
+          "name": "model_3d_info",
+          "shape": 7,
+          "type": "LOAD3D_MODEL_INFO",
+          "link": null
+        },
+        {
+          "name": "camera_info",
+          "shape": 7,
+          "type": "LOAD3D_CAMERA",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "model_3d",
+          "type": "FILE_3D",
+          "links": null
+        },
+        {
+          "name": "model_3d_info",
+          "type": "LOAD3D_MODEL_INFO",
+          "links": null
+        },
+        {
+          "name": "camera_info",
+          "type": "LOAD3D_CAMERA",
+          "links": null
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "Preview3DAdvanced",
+        "Camera Config": {
+          "cameraType": "perspective",
+          "fov": 35,
+          "hasCustomUp": false,
+          "state": {
+            "position": {
+              "x": -0.442618911232288,
+              "y": 0.5610654210393151,
+              "z": 2.2314052152323804
+            },
+            "target": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "zoom": 1,
+            "cameraType": "perspective",
+            "quaternion": {
+              "x": -0.12003263950586747,
+              "y": -0.09703855551230088,
+              "z": -0.011789913246463023,
+              "w": 0.9879456878507955
+            },
+            "fov": 35,
+            "aspect": 1,
+            "near": 0.01,
+            "far": 10000,
+            "frustum": {
+              "left": -5,
+              "right": 5,
+              "top": 5,
+              "bottom": -5
+            }
+          }
+        },
+        "Last Time Model File": "preview3d_advanced_0af2a39f21e64c548f8ad87d7b89df65.glb [temp]",
+        "Light Config": {
+          "intensity": 3,
+          "hdri": {
+            "enabled": false,
+            "hdriPath": "",
+            "showAsBackground": false,
+            "intensity": 1
+          }
+        },
+        "Scene Config": {
+          "showGrid": false,
+          "backgroundColor": "#282828",
+          "backgroundImage": "",
+          "backgroundRenderMode": "tiled",
+          "models": []
+        },
+        "Model Config": {
+          "upDirection": "original",
+          "materialMode": "original",
+          "showSkeleton": false,
+          "gizmo": {
+            "enabled": false,
+            "mode": "translate",
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          }
+        }
+      },
+      "widgets_values": [
+        "",
+        1024,
+        1024
+      ],
+      "widgets_values_named": {
+        "viewport_state": "",
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "id": 16,
+      "type": "PreviewImage",
+      "pos": [
+        2003.5213119567575,
+        -392.2995181254848
+      ],
+      "size": [
+        311.56956941833505,
+        269.5848938264916
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 19,
+      "type": "LoadImage",
+      "pos": [
+        -28.17121042145784,
+        -73.79002135400697
+      ],
+      "size": [
+        426.67107117462143,
+        509.4085139007566
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            20
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            21
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "DwarfWarrior_1024_00001_.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "DwarfWarrior_1024_00001_.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 21,
+      "type": "UnwrapMesh",
+      "pos": [
+        562.815061192333,
+        624.1288897898696
+      ],
+      "size": [
+        270,
+        130
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mesh",
+          "type": "MESH",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mesh",
+          "type": "MESH",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "UnwrapMesh"
+      },
+      "widgets_values": [
+        "pec",
+        1024,
+        1,
+        0
+      ],
+      "widgets_values_named": {
+        "segmenter": "pec",
+        "resolution": 1024,
+        "padding": 1,
+        "weld_distance": 0
+      }
+    },
+    {
+      "id": 22,
+      "type": "UltraTexLoadMesh",
+      "pos": [
+        2.097382301970112,
+        565.4640306176702
+      ],
+      "size": [
+        300.095703125,
+        82
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "trimesh",
+          "type": "TRIMESH",
+          "links": [
+            23
+          ]
+        }
+      ],
+      "properties": {
+        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "ver": "unknown",
+        "Node name for S&R": "UltraTexLoadMesh"
+      },
+      "widgets_values": [
+        "C:\\Git\\ComfyUI\\output\\3D\\DwarfWarrior_MV_Qwen\\DwarfWarrior_MV_Qwen_WhiteMesh_00001_.glb",
+        false
+      ],
+      "widgets_values_named": {
+        "glb_path": "C:\\Git\\ComfyUI\\output\\3D\\DwarfWarrior_MV_Qwen\\DwarfWarrior_MV_Qwen_WhiteMesh_00001_.glb",
+        "only_vertices_and_faces": false
+      }
+    }
+  ],
+  "links": [
+    [
+      5,
+      5,
+      0,
+      7,
+      0,
+      "MODEL"
+    ],
+    [
+      6,
+      7,
+      0,
+      4,
+      0,
+      "MODEL"
+    ],
+    [
+      7,
+      6,
+      0,
+      8,
+      0,
+      "VAE"
+    ],
+    [
+      8,
+      8,
+      0,
+      4,
+      1,
+      "VAE"
+    ],
+    [
+      9,
+      2,
+      0,
+      4,
+      3,
+      "ULTRATEX_PREP"
+    ],
+    [
+      10,
+      9,
+      0,
+      10,
+      0,
+      "CLIP"
+    ],
+    [
+      11,
+      10,
+      0,
+      4,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      12,
+      9,
+      0,
+      11,
+      0,
+      "CLIP"
+    ],
+    [
+      13,
+      11,
+      0,
+      4,
+      4,
+      "CONDITIONING"
+    ],
+    [
+      14,
+      2,
+      0,
+      12,
+      0,
+      "ULTRATEX_PREP"
+    ],
+    [
+      15,
+      4,
+      0,
+      12,
+      1,
+      "IMAGE"
+    ],
+    [
+      17,
+      4,
+      0,
+      16,
+      0,
+      "IMAGE"
+    ],
+    [
+      20,
+      19,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      21,
+      19,
+      1,
+      2,
+      1,
+      "MASK"
+    ],
+    [
+      22,
+      12,
+      4,
+      15,
+      0,
+      "FILE_3D_GLB"
+    ],
+    [
+      23,
+      22,
+      0,
+      2,
+      2,
+      "TRIMESH"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.5131581182307068,
+      "offset": [
+        211.7318161171013,
+        598.358795335191
+      ]
+    },
+    "frontendVersion": "1.53.10",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
