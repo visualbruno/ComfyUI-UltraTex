@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 from PIL import Image
 
-from .render import GLRenderer, encode_normal_world, normalize, to_single_mesh
+from .render import GLRenderer, encode_normal_world, normalize, rig_rotation, to_single_mesh
 
 log = logging.getLogger("UltraTex")
 
@@ -27,6 +27,9 @@ class UltraTexPrep:
     normal_rgba: np.ndarray  # (6, S, S, 4) uint8, bump_normal_world encoding, alpha = coverage
     reference_rgba: np.ndarray  # (S, S, 4) uint8, reference aligned to the front view
     render_size: int
+    # object rotation (glTF frame) applied before the canonical cameras; identity = canonical rig
+    rig: np.ndarray = field(default_factory=lambda: np.eye(3))
+    rig_label: str = "canonical"
 
     @property
     def masks(self) -> np.ndarray:
@@ -131,18 +134,29 @@ def prepare_mesh(mesh_obj, uv_mode: str, atlas_size: int):
     return vertices[vmapping], normals[vmapping], faces_uv.astype(np.int64), uvs.astype(np.float32), centre, scale
 
 
-def render_conditions(vertices, normals, faces, size: int) -> np.ndarray:
+def render_conditions(vertices, normals, faces, size: int, rig: np.ndarray | None = None) -> np.ndarray:
+    """6 canonical views of the (rig-rotated) object; normals are expressed in the rotated world frame,
+    which is what the model sees for an object standing in that orientation."""
     out = np.zeros((6, size, size, 4), np.uint8)
     with GLRenderer(vertices, normals, faces) as renderer:
         for view in range(6):
-            _, nrm, _ = renderer.render_view(view, size)
+            _, nrm, _ = renderer.render_view(view, size, rig)
             alpha = nrm[..., 3] > 0
             n = np.nan_to_num(nrm[..., :3])
+            if rig is not None:
+                n = n @ rig.T
             n = n / np.maximum(np.linalg.norm(n, axis=-1, keepdims=True), 1e-8)
             rgb = np.clip(encode_normal_world(n) * 255 + 0.5, 0, 255).astype(np.uint8)
             out[view, ..., :3] = np.where(alpha[..., None], rgb, 0)
             out[view, ..., 3] = alpha.astype(np.uint8) * 255
     return out
+
+
+def rotate_rig(prep: UltraTexPrep, azimuth: float, elevation: float) -> UltraTexPrep:
+    """Same mesh / UVs / reference, seen by the canonical cameras with the object rotated (second pass)."""
+    rig = rig_rotation(azimuth, elevation)
+    normal_rgba = render_conditions(prep.vertices, prep.normals, prep.faces, prep.render_size, rig)
+    return replace(prep, rig=rig, normal_rgba=normal_rgba, rig_label=f"az {azimuth:g} el {elevation:g}")
 
 
 def align_reference(rgba: np.ndarray, front_alpha: np.ndarray, size: int, mode: str) -> np.ndarray:

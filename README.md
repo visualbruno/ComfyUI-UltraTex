@@ -47,6 +47,29 @@ Load Image (reference, RGBA) ─┬ image ─ UltraTex Prep ── prep ──�
 * Reference image: the object on a transparent background (or connect a background-removal mask and set
   `mask_meaning` to `foreground`). A front view works best.
 
+### Second pass: 4 more views at 45° / 135° / 225° / 315°
+
+UltraTex only knows its 6-view layout, so extra views come from a second pass with the camera rig turned
+45° (the object is rotated; the model still sees its canonical cameras). The second pass starts from the
+first pass re-projected onto the rotated rig (SDEdit, `denoise` ~0.6) and keeps what the first pass saw
+head-on (`keep_mask`), so both passes agree; the final bake blends all 12 views. On the test meshes this
+raises the surface seen head-on (view angle < 45°) from 44% to 58% (dwarf) and 60% to 75% (anime girl).
+
+```
+UltraTex Prep ─ prep ──┬──────────────────────────────── Sampler 1 ─ views ─┬──────────────── Bake.albedo_views
+                       │                                                    │    (Bake.prep = first prep)
+                       ├─ UltraTex Rotate Rig (45) ─ prep ─┬─ Render Views.prep
+                       │                                   │  Render Views.source_prep  ← first prep
+                       │                                   │  Render Views.source_views ← Sampler 1 views
+                       │                                   │       init_views, keep_mask ─┐
+                       │                                   └─ Sampler 2.prep              │
+                       │                                      Sampler 2 (denoise 0.6) ←───┘ ─ views ─ Bake.albedo_views_2
+                       │                                                                         Bake.prep_2 ← rotated prep
+```
+
+Do **not** connect Sampler 1's `views` / `masks` straight into Sampler 2: they are seen from the other
+rig (the sampler refuses misaligned `init_views`). Sampler 2 runs `denoise x steps` steps (0.6 x 25 ≈ 11).
+
 ### Metallic-roughness
 
 The same *UltraTex Sampler* predicts metallic-roughness when its model carries the **MR LoRA**

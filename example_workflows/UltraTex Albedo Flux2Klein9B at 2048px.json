@@ -380,7 +380,7 @@
       ],
       "size": [
         335.267578125,
-        234
+        254
       ],
       "flags": {},
       "order": 11,
@@ -398,6 +398,24 @@
         },
         {
           "name": "metallic_roughness_views",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "prep_2",
+          "shape": 7,
+          "type": "ULTRATEX_PREP",
+          "link": null
+        },
+        {
+          "name": "albedo_views_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "metallic_roughness_views_2",
           "shape": 7,
           "type": "IMAGE",
           "link": null
@@ -430,6 +448,11 @@
           "links": [
             22
           ]
+        },
+        {
+          "name": "bake_state",
+          "type": "ULTRATEX_BAKE",
+          "links": null
         }
       ],
       "properties": {
@@ -737,7 +760,7 @@
       ],
       "size": [
         307.080078125,
-        354
+        418
       ],
       "flags": {},
       "order": 10,
@@ -768,6 +791,18 @@
           "shape": 7,
           "type": "CONDITIONING",
           "link": 36
+        },
+        {
+          "name": "init_views",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "keep_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
         }
       ],
       "outputs": [
@@ -806,7 +841,8 @@
         0,
         "ultratex_sparse",
         0.2,
-        8192
+        8192,
+        1
       ],
       "widgets_values_named": {
         "resolution": 2048,
@@ -818,7 +854,8 @@
         "memory_factor": 0,
         "attention": "ultratex_sparse",
         "sparse_topk": 0.2,
-        "token_chunk": 8192
+        "token_chunk": 8192,
+        "denoise": 1
       }
     }
   ],

@@ -90,7 +90,7 @@
       ],
       "size": [
         307.080078125,
-        354
+        418
       ],
       "flags": {},
       "order": 11,
@@ -121,6 +121,18 @@
           "shape": 7,
           "type": "CONDITIONING",
           "link": 13
+        },
+        {
+          "name": "init_views",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "keep_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
         }
       ],
       "outputs": [
@@ -160,7 +172,8 @@
         0,
         "ultratex_sparse",
         0.2,
-        8192
+        8192,
+        1
       ],
       "widgets_values_named": {
         "resolution": 1024,
@@ -172,7 +185,8 @@
         "memory_factor": 0,
         "attention": "ultratex_sparse",
         "sparse_topk": 0.2,
-        "token_chunk": 8192
+        "token_chunk": 8192,
+        "denoise": 1
       }
     },
     {
@@ -479,7 +493,7 @@
       ],
       "size": [
         335.267578125,
-        234
+        254
       ],
       "flags": {},
       "order": 14,
@@ -500,6 +514,24 @@
           "shape": 7,
           "type": "IMAGE",
           "link": 31
+        },
+        {
+          "name": "prep_2",
+          "shape": 7,
+          "type": "ULTRATEX_PREP",
+          "link": null
+        },
+        {
+          "name": "albedo_views_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "metallic_roughness_views_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
         }
       ],
       "outputs": [
@@ -529,6 +561,11 @@
           "links": [
             22
           ]
+        },
+        {
+          "name": "bake_state",
+          "type": "ULTRATEX_BAKE",
+          "links": null
         }
       ],
       "properties": {
@@ -841,7 +878,7 @@
       ],
       "size": [
         307.080078125,
-        354
+        418
       ],
       "flags": {},
       "order": 12,
@@ -872,6 +909,18 @@
           "shape": 7,
           "type": "CONDITIONING",
           "link": 27
+        },
+        {
+          "name": "init_views",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "keep_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
         }
       ],
       "outputs": [
@@ -911,7 +960,8 @@
         0,
         "ultratex_sparse",
         0.2,
-        8192
+        8192,
+        1
       ],
       "widgets_values_named": {
         "resolution": 1024,
@@ -923,7 +973,8 @@
         "memory_factor": 0,
         "attention": "ultratex_sparse",
         "sparse_topk": 0.2,
-        "token_chunk": 8192
+        "token_chunk": 8192,
+        "denoise": 1
       }
     },
     {
@@ -1205,8 +1256,8 @@
     "ds": {
       "scale": 0.6209213230591558,
       "offset": [
-        -331.6833096611468,
-        634.1110913201312
+        -288.7364418596332,
+        605.1219113201313
       ]
     },
     "frontendVersion": "1.53.10",

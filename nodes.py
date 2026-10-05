@@ -218,6 +218,9 @@ class UltraTexSampler:
                 "attention": (["ultratex_sparse", "comfy_default"], {"default": "ultratex_sparse", "tooltip": "ultratex_sparse: UltraTex's block-sparse top-k attention (Triton), the attention UltraTex was trained with; ~4x faster than flash attention at 2048. comfy_default: dense attention from ComfyUI's backend."}),
                 "sparse_topk": ("FLOAT", {"default": 0.2, "min": 0.05, "max": 1.0, "step": 0.05, "tooltip": "Fraction of key blocks each query block attends to (UltraTex default 0.2; 1.0 = dense)."}),
                 "token_chunk": ("INT", {"default": 8192, "min": 0, "max": 131072, "step": 1024, "tooltip": "Compute the DiT MLPs in chunks of this many tokens to cut activation memory (0 = off). Same result, keeps the whole model on the GPU at 2048."}),
+                "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01, "tooltip": "With init_views: 1 = from pure noise, lower keeps more of the init views (only the last part of the schedule runs). ~0.6 for a refining second pass."}),
+                "init_views": ("IMAGE", {"tooltip": "6 starting views (UltraTex Render Views) for a refining second pass."}),
+                "keep_mask": ("MASK", {"tooltip": "6 masks (UltraTex Render Views): 1 = keep the init content exactly, 0 = regenerate."}),
             },
         }
 
@@ -227,11 +230,25 @@ class UltraTexSampler:
     CATEGORY = CATEGORY
 
     def sample(self, model, vae, positive, prep, resolution, steps, seed, guidance, drop_background_tokens, negative=None,
-               memory_factor=0.0, attention="ultratex_sparse", sparse_topk=0.2, token_chunk=8192):
+               memory_factor=0.0, attention="ultratex_sparse", sparse_topk=0.2, token_chunk=8192,
+               denoise=1.0, init_views=None, keep_mask=None):
         if resolution % 16:
             raise ValueError("UltraTex: resolution must be a multiple of 16")
+        init_np = keep_np = None
+        if init_views is not None:
+            if init_views.shape[0] != 6:
+                raise ValueError(f"UltraTex: init_views must hold 6 views, got {init_views.shape[0]}")
+            init_np = _image_to_uint8(init_views[..., :3])
+            _check_init_alignment(init_np, prep)
+            if keep_mask is not None:
+                keep_np = keep_mask.cpu().numpy().astype(np.float32)
+                if keep_np.shape[0] != 6:
+                    raise ValueError(f"UltraTex: keep_mask must hold 6 masks, got {keep_np.shape[0]}")
+        elif keep_mask is not None:
+            raise ValueError("UltraTex: keep_mask needs init_views")
         views, masks = sampling.sample(model, vae, positive, negative, prep, resolution, steps, seed, guidance,
-                                       drop_background_tokens, memory_factor, attention, sparse_topk, token_chunk)
+                                       drop_background_tokens, memory_factor, attention, sparse_topk, token_chunk,
+                                       init_np, denoise, keep_np)
         rows = [torch.cat([views[v] for v in row], dim=1) for row in sampling.GRID_ORDER]
         atlas = torch.cat(rows, dim=0)[None]
         return (views, masks, atlas)
@@ -255,35 +272,56 @@ class UltraTexBake:
             },
             "optional": {
                 "metallic_roughness_views": ("IMAGE", {"tooltip": "Views from the MR LoRA: G = roughness, B = metallic."}),
+                "prep_2": ("ULTRATEX_PREP", {"tooltip": "Second rig (UltraTex Rotate Rig) whose views are baked together with the first."}),
+                "albedo_views_2": ("IMAGE", {"tooltip": "Albedo views generated with prep_2."}),
+                "metallic_roughness_views_2": ("IMAGE", {"tooltip": "Metallic-roughness views generated with prep_2."}),
             },
         }
 
-    RETURN_TYPES = ("TRIMESH", "IMAGE", "IMAGE", "STRING", "FILE_3D_GLB")
-    RETURN_NAMES = ("trimesh", "albedo_texture", "preview", "glb_path", "model_3d")
+    RETURN_TYPES = ("TRIMESH", "IMAGE", "IMAGE", "STRING", "FILE_3D_GLB", "ULTRATEX_BAKE")
+    RETURN_NAMES = ("trimesh", "albedo_texture", "preview", "glb_path", "model_3d", "bake_state")
     OUTPUT_TOOLTIPS = (
         "Textured trimesh (original scale and position).",
         "Baked albedo texture.",
         "Unlit renders from 8 azimuths.",
         "GLB path relative to the output folder.",
         "The saved GLB as a 3D file: connect to Preview 3D.",
+        "Textures + per-texel confidence, for UltraTex Render Views (second pass).",
     )
     FUNCTION = "bake"
     CATEGORY = CATEGORY
     OUTPUT_NODE = True
 
-    def bake(self, prep, albedo_views, texture_size, filename_prefix, view_weight_power, best_view_mix, edge_feather_px, metallic_roughness_views=None):
+    def bake(self, prep, albedo_views, texture_size, filename_prefix, view_weight_power, best_view_mix, edge_feather_px,
+             metallic_roughness_views=None, prep_2=None, albedo_views_2=None, metallic_roughness_views_2=None):
         settings = bake_core.BakeSettings(power=view_weight_power, best_view_mix=best_view_mix, edge_px=edge_feather_px)
+        if prep_2 is not None:
+            if prep_2.vertices.shape != prep.vertices.shape or not np.array_equal(prep_2.uvs, prep.uvs):
+                raise ValueError("UltraTex Bake: prep_2 must come from UltraTex Rotate Rig on the same prep (same mesh and UVs)")
+            if albedo_views_2 is None:
+                raise ValueError("UltraTex Bake: prep_2 is connected but albedo_views_2 is not")
+        albedo_sets = [self._views(albedo_views, prep)]
+        if prep_2 is not None:
+            albedo_sets.append(self._views(albedo_views_2, prep_2))
+        mr_sets = []
+        if metallic_roughness_views is not None:
+            mr_sets.append(self._views(metallic_roughness_views, prep))
+        if prep_2 is not None and metallic_roughness_views_2 is not None:
+            mr_sets.append(self._views(metallic_roughness_views_2, prep_2))
+
         baker = bake_core.Baker(prep, texture_size)
         try:
-            albedo = bake_core.to_pil(baker.bake(*self._views(albedo_views, prep), settings))
-            orm = None
-            if metallic_roughness_views is not None:
-                orm_np = np.asarray(bake_core.to_pil(baker.bake(*self._views(metallic_roughness_views, prep), settings))).copy()
-                orm_np[..., 0] = 255  # R = occlusion (unused)
-                orm = Image.fromarray(orm_np)
+            albedo_np, confidence = baker.bake(albedo_sets, settings)
+            albedo = bake_core.to_pil(albedo_np)
+            orm = orm_np = None
+            if mr_sets:
+                orm_np, _ = baker.bake(mr_sets, settings)
+                orm_np[..., 0] = 1.0  # R = occlusion (unused)
+                orm = bake_core.to_pil(orm_np)
             preview = baker.preview(np.asarray(albedo).astype(np.float32) / 255.0)
         finally:
             baker.release()
+        bake_state = {"albedo": albedo_np, "orm": orm_np, "confidence": confidence, "uvs": prep.uvs}
 
         mesh = bake_core.textured_mesh(prep, albedo, orm)
         out_dir = folder_paths.get_output_directory()
@@ -298,7 +336,7 @@ class UltraTexBake:
         log.info("UltraTex: saved %s", rel)
         albedo_t = _uint8_to_image(np.asarray(albedo))[None]
         model_3d = File3D(glb_file, file_format="glb") if File3D is not None else None
-        return {"ui": {"text": [rel]}, "result": (mesh, albedo_t, torch.from_numpy(preview), rel, model_3d)}
+        return {"ui": {"text": [rel]}, "result": (mesh, albedo_t, torch.from_numpy(preview), rel, model_3d, bake_state)}
 
     @staticmethod
     def _views(images: torch.Tensor, prep):
@@ -310,7 +348,112 @@ class UltraTexBake:
             np.asarray(Image.fromarray(prep.normal_rgba[v, ..., 3]).resize((size, size), Image.Resampling.BILINEAR)) > 0
             for v in range(6)
         ])
-        return views, masks
+        rig = None if np.allclose(prep.rig, np.eye(3)) else prep.rig
+        return views, masks, rig
+
+
+# =========================================================================== second pass
+class UltraTexRotateRig:
+    """Same mesh and UVs, seen through a rotated camera rig (e.g. 45 deg: views at 45/135/225/315 deg)."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "prep": ("ULTRATEX_PREP",),
+                "azimuth": ("FLOAT", {"default": 45.0, "min": -180.0, "max": 180.0, "step": 1.0, "tooltip": "Rig rotation around the vertical axis. 45 puts the side views at 45/135/225/315 degrees."}),
+                "elevation": ("FLOAT", {"default": 0.0, "min": -60.0, "max": 60.0, "step": 1.0, "tooltip": "Rig tilt (> 0: cameras look from above, < 0: from below, e.g. under arms)."}),
+            }
+        }
+
+    RETURN_TYPES = ("ULTRATEX_PREP", "IMAGE")
+    RETURN_NAMES = ("prep", "normal_views")
+    FUNCTION = "rotate"
+    CATEGORY = CATEGORY
+
+    def rotate(self, prep, azimuth, elevation):
+        rotated = prep_core.rotate_rig(prep, azimuth, elevation)
+        return (rotated, _uint8_to_image(_normal_preview(rotated)))
+
+
+class UltraTexRenderViews:
+    """Re-projects the first pass onto a rotated rig: init views (and keep mask) for the second pass.
+
+    Wiring: first UltraTex Sampler `views` -> source_views, the first prep -> source_prep, the
+    UltraTex Rotate Rig `prep` -> prep. The first-pass views are baked internally and rendered from the
+    rotated cameras, so the init views line up with the rotated rig's geometry.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "prep": ("ULTRATEX_PREP", {"tooltip": "The rotated rig (output of UltraTex Rotate Rig)."}),
+                "source_prep": ("ULTRATEX_PREP", {"tooltip": "The prep the first-pass views were generated with (UltraTex Prep)."}),
+                "source_views": ("IMAGE", {"tooltip": "The 6 views of the first UltraTex Sampler (NOT directly usable as init_views: they are seen from the other rig)."}),
+                "resolution": ("INT", {"default": 2048, "min": 256, "max": 4096, "step": 16, "tooltip": "Use the resolution of the sampler that refines these views."}),
+                "keep_above": ("FLOAT", {"default": 0.75, "min": 0.0, "max": 1.01, "step": 0.01, "tooltip": "Keep regions the first pass saw at least this head-on (cosine of the view angle, 0.75 ~ 41 deg). 1.01 = keep nothing (plain refine)."}),
+                "keep_feather": ("FLOAT", {"default": 0.1, "min": 0.0, "max": 0.5, "step": 0.01, "tooltip": "Soft transition width of the keep mask, in cosine units."}),
+            },
+            "optional": {
+                "bake_state": ("ULTRATEX_BAKE", {"tooltip": "Alternative source: bake_state of a first UltraTex Bake Texture (used instead of source_views)."}),
+                "texture": (["albedo", "metallic_roughness"], {"tooltip": "Which bake_state texture to render (only with bake_state)."}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE", "MASK")
+    RETURN_NAMES = ("init_views", "keep_mask")
+    FUNCTION = "render"
+    CATEGORY = CATEGORY
+
+    def render(self, prep, source_prep, source_views, resolution, keep_above, keep_feather, bake_state=None, texture="albedo"):
+        if source_prep.vertices.shape != prep.vertices.shape or not np.array_equal(source_prep.uvs, prep.uvs):
+            raise ValueError("UltraTex Render Views: prep must be UltraTex Rotate Rig applied to source_prep")
+        baker = bake_core.Baker(prep, max(2048, resolution))
+        try:
+            if bake_state is not None:
+                if not np.array_equal(bake_state["uvs"], prep.uvs):
+                    raise ValueError("UltraTex Render Views: bake_state comes from a different mesh / UV layout than prep")
+                tex = bake_state["albedo"] if texture == "albedo" else bake_state["orm"]
+                if tex is None:
+                    raise ValueError("UltraTex Render Views: the bake has no metallic-roughness texture")
+                conf_tex = bake_state["confidence"]
+            else:
+                tex, conf_tex = baker.bake([UltraTexBake._views(source_views, source_prep)], bake_core.BakeSettings())
+            rig = None if np.allclose(prep.rig, np.eye(3)) else prep.rig
+            views, covers, conf = baker.render_views(tex, conf_tex, resolution, rig)
+        finally:
+            baker.release()
+        lo = keep_above - keep_feather / 2
+        keep = np.clip((conf - lo) / max(keep_feather, 1e-6), 0.0, 1.0) * covers
+        return (torch.from_numpy(views), torch.from_numpy(keep.astype(np.float32)))
+
+
+def _check_init_alignment(init_np: np.ndarray, prep, tolerance: float = 0.05):
+    """init_views must be seen from prep's rig: no visible content far outside its silhouettes."""
+    from scipy import ndimage
+
+    size = init_np.shape[1]
+    outside = inside = 0
+    for v in range(6):
+        sil = np.asarray(Image.fromarray(prep.normal_rgba[v, ..., 3]).resize((size, size), Image.Resampling.BILINEAR)) > 0
+        grown = ndimage.binary_dilation(sil, iterations=max(2, size // 256))
+        content = (init_np[v] < 245).any(-1)  # non-white
+        outside += int((content & ~grown).sum())
+        inside += int(sil.sum())
+    ratio = outside / max(inside, 1)
+    if ratio > tolerance:
+        raise ValueError(
+            f"UltraTex Sampler: init_views do not match this prep's camera rig ({ratio:.0%} of the content lies outside "
+            "the silhouettes). For a second pass, generate them with 'UltraTex Render Views (second pass)' "
+            "(source_views = first sampler's views) instead of connecting the first sampler's views directly."
+        )
+
+
+def _normal_preview(prep, size: int = 1024) -> np.ndarray:
+    size = min(prep.render_size, size)
+    normals = np.stack([np.asarray(Image.fromarray(v).resize((size, size), Image.Resampling.BILINEAR)) for v in prep.normal_rgba])
+    return (normals[..., :3] * (normals[..., 3:] > 0) + 255 * (normals[..., 3:] == 0)).astype(np.uint8)
 
 class UltraTexLoadMesh:
     @classmethod
@@ -347,6 +490,8 @@ NODE_CLASS_MAPPINGS = {
     "UltraTexSampler": UltraTexSampler,
     "UltraTexBake": UltraTexBake,
     "UltraTexLoadMesh": UltraTexLoadMesh,
+    "UltraTexRotateRig": UltraTexRotateRig,
+    "UltraTexRenderViews": UltraTexRenderViews,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "UltraTexLoraLoader": "UltraTex Load LoRA",
@@ -355,4 +500,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "UltraTexSampler": "UltraTex Sampler",
     "UltraTexBake": "UltraTex Bake Texture",
     "UltraTexLoadMesh": "UltraText Load Mesh",
+    "UltraTexRotateRig": "UltraTex Rotate Rig (second pass)",
+    "UltraTexRenderViews": "UltraTex Render Views (second pass)",
 }

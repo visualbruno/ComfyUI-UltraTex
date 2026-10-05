@@ -81,13 +81,29 @@ def orbit_pose(azimuth_deg: float, elevation_deg: float, dist: float = CAM_DIST)
     return np.stack([right, up, back, eye], axis=1)
 
 
-def view_matrix(view) -> np.ndarray:
-    """World (glTF frame) -> camera, for a canonical view index or a 3x4 camera-to-world pose."""
+def rig_rotation(azimuth_deg: float, elevation_deg: float = 0.0) -> np.ndarray:
+    """Object rotation (glTF frame) that makes the canonical cameras see the object from a rig turned by
+    `azimuth_deg` around the vertical axis and tilted by `elevation_deg` (cameras higher for > 0)."""
+    a, e = np.radians(azimuth_deg), np.radians(elevation_deg)
+    ry = np.array([[np.cos(a), 0, np.sin(a)], [0, 1, 0], [-np.sin(a), 0, np.cos(a)]])  # about +Y (up)
+    rx = np.array([[1, 0, 0], [0, np.cos(e), -np.sin(e)], [0, np.sin(e), np.cos(e)]])  # about +X
+    return rx @ ry
+
+
+def view_matrix(view, rig: np.ndarray | None = None) -> np.ndarray:
+    """World (glTF frame) -> camera, for a canonical view index or a 3x4 camera-to-world pose.
+
+    `rig` is an object rotation applied before the canonical cameras (rotated rig)."""
     c2w = np.eye(4)
     c2w[:3, :4] = POSES[view] if np.isscalar(view) else view
     to_bl = np.eye(4)
     to_bl[:3, :3] = GLTF_TO_BLENDER
-    return np.linalg.inv(c2w) @ to_bl
+    mv = np.linalg.inv(c2w) @ to_bl
+    if rig is not None:
+        r4 = np.eye(4)
+        r4[:3, :3] = rig
+        mv = mv @ r4
+    return mv
 
 
 def encode_normal_world(n_gltf: np.ndarray) -> np.ndarray:
@@ -96,9 +112,9 @@ def encode_normal_world(n_gltf: np.ndarray) -> np.ndarray:
     return n_bl * 0.5 + 0.5
 
 
-def project(points_gltf: np.ndarray, view, size: int):
+def project(points_gltf: np.ndarray, view, size: int, rig: np.ndarray | None = None):
     """Project glTF-frame points into view pixels. Returns (u, v, depth)."""
-    mv = view_matrix(view)
+    mv = view_matrix(view, rig)
     p = points_gltf @ mv[:3, :3].T + mv[:3, 3]
     depth = -p[..., 2]
     f = FOCAL_OVER_SIZE * size
@@ -203,9 +219,10 @@ class GLRenderer:
         fbo.release()
         return out  # pos, nrm, (depth, u, v); alpha channel = coverage
 
-    def render_view(self, view, size: int):
-        """`view` is a canonical view index or a 3x4 Blender-frame camera-to-world pose."""
-        mv = view_matrix(view)
+    def render_view(self, view, size: int, rig: np.ndarray | None = None):
+        """`view` is a canonical view index or a 3x4 Blender-frame camera-to-world pose; `rig` rotates the
+        object first. Position / normal outputs stay in the unrotated object frame."""
+        mv = view_matrix(view, rig)
         return self._render(size, perspective(FOV_Y) @ mv, mv, 0)
 
     def render_uv(self, size: int):

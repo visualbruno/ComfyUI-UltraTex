@@ -182,7 +182,13 @@ def sample(
     attention: str = "ultratex_sparse",
     sparse_topk: float = 0.2,
     token_chunk: int = 8192,
+    init_views: np.ndarray | None = None,
+    denoise: float = 1.0,
+    keep_mask: np.ndarray | None = None,
 ):
+    """init_views (6, H, W, 3) uint8 + denoise < 1: start from these views (SDEdit) instead of noise.
+    keep_mask (6, H, W) float in [0, 1]: tokens are pulled back to the (noised) init views after every
+    step in proportion to the mask (RePaint), so kept regions end exactly on the init content."""
     import time
 
     import comfy.model_management as mm
@@ -241,6 +247,29 @@ def sample(
     # ---- noise (CPU generator for reproducibility, like ComfyUI)
     gen = torch.Generator("cpu").manual_seed(seed)
     x = torch.randn((1, th * tw, bg_tokens.shape[-1]), generator=gen, dtype=torch.float32)
+    noise = x.clone()
+
+    # ---- optional init views (SDEdit) and keep mask (RePaint)
+    sched_len = ((R * 3) // 8) * ((R * 2) // 8) // (16 * 16)
+    timesteps = uno_schedule(steps, sched_len)
+    start = 0
+    x0_init = keep_w = None
+    if init_views is not None:
+        tiles_init = np.stack([np.asarray(Image.fromarray(v).resize((R, R), Image.Resampling.BILINEAR)) for v in init_views])
+        x0_init = bb.pack(tiles_to_grid(encode_tiles(vae, model, tiles_init)))
+        if denoise < 1.0:
+            start = next((i for i, t in enumerate(timesteps[:-1]) if t <= denoise), len(timesteps) - 2)
+            t0 = timesteps[start]
+            x = (1 - t0) * x0_init + t0 * noise
+        if keep_mask is not None:
+            s = R // 16
+            km = [np.asarray(Image.fromarray(np.clip(m * 255, 0, 255).astype(np.uint8)).resize((s, s), Image.Resampling.BOX)) / 255.0
+                  for m in keep_mask]
+            keep_w = torch.from_numpy(_grid(km).reshape(-1)).float()[None, :, None]
+        log.info("UltraTex: init views, denoise %.2f -> %d of %d steps%s", denoise, steps - start, steps,
+                 f", keeping {float(keep_w[0, tgt_idx, 0].mean()):.0%} of the foreground" if keep_w is not None else "")
+    elif denoise < 1.0 or keep_mask is not None:
+        raise ValueError("UltraTex: denoise < 1 and keep_mask need init_views")
 
     # ---- load DiT
     total_tokens = x_ids.shape[1] + ctx.shape[1]
@@ -277,14 +306,19 @@ def sample(
     y_d = y.to(device, dtype).expand(batch, -1) if (family == "flux1" and y is not None) else None
     guid_d = torch.full((batch,), guidance, device=device, dtype=dtype) if family == "flux1" else None
 
-    sched_len = ((R * 3) // 8) * ((R * 2) // 8) // (16 * 16)
-    timesteps = uno_schedule(steps, sched_len)
+    keep_d = None
+    if keep_w is not None:
+        x0_d, noise_d = x0_init.to(device), noise.to(device)
+        keep_d = keep_w.to(device)[:, tgt_idx_d]
     pbar = comfy.utils.ProgressBar(steps)
+    pbar.update(start)
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
     t_start = time.time()
     with optim.chunked_model(dm, transformer_options, token_chunk) as topts:
         for i, (t_curr, t_prev) in enumerate(zip(timesteps[:-1], timesteps[1:])):
+            if i < start:
+                continue
             mm.throw_exception_if_processing_interrupted()
             t_step = time.time()
             x_fg = x[:, tgt_idx_d]
@@ -295,14 +329,19 @@ def sample(
             )[:, :n_fg].float()
             if use_cfg:
                 pred = pred[0:1] + guidance * (pred[1:2] - pred[0:1])
-            x[:, tgt_idx_d] = x_fg + (t_prev - t_curr) * pred
+            x_new = x_fg + (t_prev - t_curr) * pred
+            if keep_d is not None:  # RePaint: kept tokens follow the init content's own noising path
+                known = (1 - t_prev) * x0_d[:, tgt_idx_d] + t_prev * noise_d[:, tgt_idx_d]
+                x_new = keep_d * known + (1 - keep_d) * x_new
+            x[:, tgt_idx_d] = x_new
             pbar.update(1)
             optim.PROF.report(i + 1, time.time() - t_step)
-            if i == 0:
+            if i == start:
                 log.info("UltraTex: first step %.1fs", time.time() - t_start)
+    ran = max(steps - start, 1)
     peak = torch.cuda.max_memory_allocated(device) / 2**30 if device.type == "cuda" else 0.0
-    log.info("UltraTex: %d steps in %.0fs (%.1fs/step), peak VRAM %.1f GB", steps, time.time() - t_start,
-             (time.time() - t_start) / max(steps, 1), peak)
+    log.info("UltraTex: %d steps in %.0fs (%.1fs/step), peak VRAM %.1f GB", ran, time.time() - t_start,
+             (time.time() - t_start) / ran, peak)
 
     # ---- decode: foreground into the black-background latent, then tile by tile
     out_tokens = bg_tokens.to(device).clone()

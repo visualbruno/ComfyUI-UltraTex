@@ -1,8 +1,8 @@
 {
   "id": "518730f6-ad18-4baf-bfee-757f47061db9",
   "revision": 0,
-  "last_node_id": 25,
-  "last_link_id": 38,
+  "last_node_id": 26,
+  "last_link_id": 45,
   "nodes": [
     {
       "id": 2,
@@ -43,7 +43,7 @@
           "type": "ULTRATEX_PREP",
           "links": [
             14,
-            35
+            42
           ]
         },
         {
@@ -180,7 +180,7 @@
           "name": "MODEL",
           "type": "MODEL",
           "links": [
-            32
+            39
           ]
         }
       ],
@@ -225,7 +225,7 @@
           "name": "VAE",
           "type": "VAE",
           "links": [
-            33
+            40
           ]
         }
       ],
@@ -309,7 +309,7 @@
           "name": "CONDITIONING",
           "type": "CONDITIONING",
           "links": [
-            34
+            41
           ]
         }
       ],
@@ -354,7 +354,7 @@
           "name": "CONDITIONING",
           "type": "CONDITIONING",
           "links": [
-            36
+            43
           ]
         }
       ],
@@ -380,7 +380,7 @@
       ],
       "size": [
         335.267578125,
-        234
+        254
       ],
       "flags": {},
       "order": 11,
@@ -394,10 +394,28 @@
         {
           "name": "albedo_views",
           "type": "IMAGE",
-          "link": 37
+          "link": 44
         },
         {
           "name": "metallic_roughness_views",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "prep_2",
+          "shape": 7,
+          "type": "ULTRATEX_PREP",
+          "link": null
+        },
+        {
+          "name": "albedo_views_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "metallic_roughness_views_2",
           "shape": 7,
           "type": "IMAGE",
           "link": null
@@ -430,6 +448,11 @@
           "links": [
             22
           ]
+        },
+        {
+          "name": "bake_state",
+          "type": "ULTRATEX_BAKE",
+          "links": null
         }
       ],
       "properties": {
@@ -707,7 +730,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 38
+          "link": 45
         }
       ],
       "outputs": [
@@ -729,7 +752,7 @@
       }
     },
     {
-      "id": 25,
+      "id": 26,
       "type": "UltraTexSampler",
       "pos": [
         1558.688332566256,
@@ -737,7 +760,7 @@
       ],
       "size": [
         307.080078125,
-        354
+        418
       ],
       "flags": {},
       "order": 10,
@@ -746,28 +769,40 @@
         {
           "name": "model",
           "type": "MODEL",
-          "link": 32
+          "link": 39
         },
         {
           "name": "vae",
           "type": "VAE",
-          "link": 33
+          "link": 40
         },
         {
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 34
+          "link": 41
         },
         {
           "name": "prep",
           "type": "ULTRATEX_PREP",
-          "link": 35
+          "link": 42
         },
         {
           "name": "negative",
           "shape": 7,
           "type": "CONDITIONING",
-          "link": 36
+          "link": 43
+        },
+        {
+          "name": "init_views",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "keep_mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
         }
       ],
       "outputs": [
@@ -775,8 +810,8 @@
           "name": "views",
           "type": "IMAGE",
           "links": [
-            37,
-            38
+            44,
+            45
           ]
         },
         {
@@ -806,7 +841,8 @@
         0,
         "ultratex_sparse",
         0.2,
-        8192
+        8192,
+        1
       ],
       "widgets_values_named": {
         "resolution": 1024,
@@ -818,7 +854,8 @@
         "memory_factor": 0,
         "attention": "ultratex_sparse",
         "sparse_topk": 0.2,
-        "token_chunk": 8192
+        "token_chunk": 8192,
+        "denoise": 1
       }
     }
   ],
@@ -896,56 +933,56 @@
       "TRIMESH"
     ],
     [
-      32,
+      39,
       7,
       0,
-      25,
+      26,
       0,
       "MODEL"
     ],
     [
-      33,
+      40,
       8,
       0,
-      25,
+      26,
       1,
       "VAE"
     ],
     [
-      34,
+      41,
       10,
       0,
-      25,
+      26,
       2,
       "CONDITIONING"
     ],
     [
-      35,
+      42,
       2,
       0,
-      25,
+      26,
       3,
       "ULTRATEX_PREP"
     ],
     [
-      36,
+      43,
       11,
       0,
-      25,
+      26,
       4,
       "CONDITIONING"
     ],
     [
-      37,
-      25,
+      44,
+      26,
       0,
       12,
       1,
       "IMAGE"
     ],
     [
-      38,
-      25,
+      45,
+      26,
       0,
       24,
       0,
@@ -956,10 +993,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.7627768444385475,
+      "scale": 0.6934334949441342,
       "offset": [
-        -208.38088095025358,
-        468.6722551487895
+        -284.812139084993,
+        522.9914844482583
       ]
     },
     "frontendVersion": "1.53.10",
