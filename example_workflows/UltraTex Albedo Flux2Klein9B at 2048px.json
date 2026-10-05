@@ -1,8 +1,8 @@
 {
   "id": "518730f6-ad18-4baf-bfee-757f47061db9",
   "revision": 0,
-  "last_node_id": 22,
-  "last_link_id": 23,
+  "last_node_id": 25,
+  "last_link_id": 38,
   "nodes": [
     {
       "id": 2,
@@ -12,11 +12,11 @@
         510.5794088041175
       ],
       "size": [
-        319.74375,
-        218
+        365.6252996544007,
+        220.46673492557227
       ],
       "flags": {},
-      "order": 10,
+      "order": 9,
       "mode": 0,
       "inputs": [
         {
@@ -42,8 +42,8 @@
           "name": "prep",
           "type": "ULTRATEX_PREP",
           "links": [
-            9,
-            14
+            14,
+            35
           ]
         },
         {
@@ -58,15 +58,16 @@
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexPrep"
+        "Node name for S&R": "UltraTexPrep",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
         "",
         4096,
         4096,
-        "xatlas",
+        "comfy_gpu",
         "fit_front_silhouette",
         "background (LoadImage)"
       ],
@@ -74,95 +75,9 @@
         "mesh_path": "",
         "render_size": 4096,
         "atlas_size": 4096,
-        "uv_mode": "xatlas",
+        "uv_mode": "comfy_gpu",
         "reference_alignment": "fit_front_silhouette",
         "mask_meaning": "background (LoadImage)"
-      }
-    },
-    {
-      "id": 4,
-      "type": "UltraTexSampler",
-      "pos": [
-        1558.688332566256,
-        -20.436428418409548
-      ],
-      "size": [
-        307.080078125,
-        282
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 6
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 8
-        },
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 11
-        },
-        {
-          "name": "prep",
-          "type": "ULTRATEX_PREP",
-          "link": 9
-        },
-        {
-          "name": "negative",
-          "shape": 7,
-          "type": "CONDITIONING",
-          "link": 13
-        }
-      ],
-      "outputs": [
-        {
-          "name": "views",
-          "type": "IMAGE",
-          "links": [
-            15,
-            17
-          ]
-        },
-        {
-          "name": "masks",
-          "type": "MASK",
-          "links": null
-        },
-        {
-          "name": "atlas",
-          "type": "IMAGE",
-          "links": null
-        }
-      ],
-      "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
-        "ver": "unknown",
-        "Node name for S&R": "UltraTexSampler"
-      },
-      "widgets_values": [
-        1024,
-        25,
-        12345,
-        "fixed",
-        4,
-        true,
-        28
-      ],
-      "widgets_values_named": {
-        "resolution": 1024,
-        "steps": 25,
-        "seed": 12345,
-        "control_after_generate": "fixed",
-        "guidance": 4,
-        "drop_background_tokens": true,
-        "memory_factor": 28
       }
     },
     {
@@ -251,7 +166,7 @@
         82
       ],
       "flags": {},
-      "order": 6,
+      "order": 5,
       "mode": 0,
       "inputs": [
         {
@@ -265,14 +180,15 @@
           "name": "MODEL",
           "type": "MODEL",
           "links": [
-            6
+            32
           ]
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexLoraLoader"
+        "Node name for S&R": "UltraTexLoraLoader",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
         "ultratex_flux2.safetensors",
@@ -295,7 +211,7 @@
         61.904296453857455
       ],
       "flags": {},
-      "order": 7,
+      "order": 6,
       "mode": 0,
       "inputs": [
         {
@@ -309,14 +225,15 @@
           "name": "VAE",
           "type": "VAE",
           "links": [
-            8
+            33
           ]
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexForegroundDecoder"
+        "Node name for S&R": "UltraTexForegroundDecoder",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
         "ultratex_flux2_decoder.pt"
@@ -378,7 +295,7 @@
         200
       ],
       "flags": {},
-      "order": 8,
+      "order": 7,
       "mode": 0,
       "inputs": [
         {
@@ -392,7 +309,7 @@
           "name": "CONDITIONING",
           "type": "CONDITIONING",
           "links": [
-            11
+            34
           ]
         }
       ],
@@ -423,7 +340,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 9,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
@@ -437,7 +354,7 @@
           "name": "CONDITIONING",
           "type": "CONDITIONING",
           "links": [
-            13
+            36
           ]
         }
       ],
@@ -466,7 +383,7 @@
         234
       ],
       "flags": {},
-      "order": 12,
+      "order": 11,
       "mode": 0,
       "inputs": [
         {
@@ -477,7 +394,7 @@
         {
           "name": "albedo_views",
           "type": "IMAGE",
-          "link": 15
+          "link": 37
         },
         {
           "name": "metallic_roughness_views",
@@ -516,20 +433,21 @@
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexBake"
+        "Node name for S&R": "UltraTexBake",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
-        2048,
-        "UltraTex/DwarfWarrior",
+        4096,
+        "UltraTex/DwarfWarrior_2048",
         4,
         0.5,
         6
       ],
       "widgets_values_named": {
-        "texture_size": 2048,
-        "filename_prefix": "UltraTex/DwarfWarrior",
+        "texture_size": 4096,
+        "filename_prefix": "UltraTex/DwarfWarrior_2048",
         "view_weight_power": 4,
         "best_view_mix": 0.5,
         "edge_feather_px": 6
@@ -547,7 +465,7 @@
         684.8747208251951
       ],
       "flags": {},
-      "order": 14,
+      "order": 13,
       "mode": 0,
       "inputs": [
         {
@@ -605,9 +523,9 @@
           "hasCustomUp": false,
           "state": {
             "position": {
-              "x": -0.442618911232288,
-              "y": 0.5610654210393151,
-              "z": 2.2314052152323804
+              "x": -0.3320670534492883,
+              "y": 0.6564291714699272,
+              "z": 2.22456902718022
             },
             "target": {
               "x": 0,
@@ -617,10 +535,10 @@
             "zoom": 1,
             "cameraType": "perspective",
             "quaternion": {
-              "x": -0.12003263950586747,
-              "y": -0.09703855551230088,
-              "z": -0.011789913246463023,
-              "w": 0.9879456878507955
+              "x": -0.14111582822803334,
+              "y": -0.07327661561883497,
+              "z": -0.010474331997625694,
+              "w": 0.9872219350258425
             },
             "fov": 35,
             "aspect": 1,
@@ -634,7 +552,7 @@
             }
           }
         },
-        "Last Time Model File": "preview3d_advanced_0af2a39f21e64c548f8ad87d7b89df65.glb [temp]",
+        "Last Time Model File": "preview3d_advanced_13a49827b46b4ecca92aa80db360e280.glb [temp]",
         "Light Config": {
           "intensity": 3,
           "hdri": {
@@ -688,44 +606,10 @@
       }
     },
     {
-      "id": 16,
-      "type": "PreviewImage",
-      "pos": [
-        2003.5213119567575,
-        -392.2995181254848
-      ],
-      "size": [
-        311.56956941833505,
-        269.5848938264916
-      ],
-      "flags": {},
-      "order": 13,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 17
-        }
-      ],
-      "outputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.38.0",
-        "Node name for S&R": "PreviewImage"
-      }
-    },
-    {
       "id": 19,
       "type": "LoadImage",
       "pos": [
-        -28.17121042145784,
+        -68.44473680154205,
         -73.79002135400697
       ],
       "size": [
@@ -758,73 +642,27 @@
         "Node name for S&R": "LoadImage"
       },
       "widgets_values": [
-        "DwarfWarrior_1024_00001_.png",
+        "Image_4096_00022_.png",
         "image"
       ],
       "widgets_values_named": {
-        "image": "DwarfWarrior_1024_00001_.png",
+        "image": "Image_4096_00022_.png",
         "upload": "image"
-      }
-    },
-    {
-      "id": 21,
-      "type": "UnwrapMesh",
-      "pos": [
-        562.815061192333,
-        624.1288897898696
-      ],
-      "size": [
-        270,
-        130
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "mesh",
-          "type": "MESH",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "mesh",
-          "type": "MESH",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.38.0",
-        "Node name for S&R": "UnwrapMesh"
-      },
-      "widgets_values": [
-        "pec",
-        1024,
-        1,
-        0
-      ],
-      "widgets_values_named": {
-        "segmenter": "pec",
-        "resolution": 1024,
-        "padding": 1,
-        "weld_distance": 0
       }
     },
     {
       "id": 22,
       "type": "UltraTexLoadMesh",
       "pos": [
-        2.097382301970112,
-        565.4640306176702
+        7.953782301970113,
+        555.703334163813
       ],
       "size": [
         300.095703125,
         82
       ],
       "flags": {},
-      "order": 5,
+      "order": 4,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -837,9 +675,10 @@
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexLoadMesh"
+        "Node name for S&R": "UltraTexLoadMesh",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
         "C:\\Git\\ComfyUI\\output\\3D\\DwarfWarrior_MV_Qwen\\DwarfWarrior_MV_Qwen_WhiteMesh_00001_.glb",
@@ -848,6 +687,138 @@
       "widgets_values_named": {
         "glb_path": "C:\\Git\\ComfyUI\\output\\3D\\DwarfWarrior_MV_Qwen\\DwarfWarrior_MV_Qwen_WhiteMesh_00001_.glb",
         "only_vertices_and_faces": false
+      }
+    },
+    {
+      "id": 24,
+      "type": "SaveImage",
+      "pos": [
+        1996.9843268077855,
+        -348.126249871136
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 38
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0"
+      },
+      "widgets_values": [
+        "UltraTex_Views"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "UltraTex_Views"
+      }
+    },
+    {
+      "id": 25,
+      "type": "UltraTexSampler",
+      "pos": [
+        1558.688332566256,
+        -20.436428418409548
+      ],
+      "size": [
+        307.080078125,
+        354
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 32
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 33
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 34
+        },
+        {
+          "name": "prep",
+          "type": "ULTRATEX_PREP",
+          "link": 35
+        },
+        {
+          "name": "negative",
+          "shape": 7,
+          "type": "CONDITIONING",
+          "link": 36
+        }
+      ],
+      "outputs": [
+        {
+          "name": "views",
+          "type": "IMAGE",
+          "links": [
+            37,
+            38
+          ]
+        },
+        {
+          "name": "masks",
+          "type": "MASK",
+          "links": null
+        },
+        {
+          "name": "atlas",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "ultratex",
+        "ver": "unknown",
+        "Node name for S&R": "UltraTexSampler",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
+      },
+      "widgets_values": [
+        2048,
+        25,
+        12345,
+        "fixed",
+        4,
+        true,
+        0,
+        "ultratex_sparse",
+        0.2,
+        8192
+      ],
+      "widgets_values_named": {
+        "resolution": 2048,
+        "steps": 25,
+        "seed": 12345,
+        "control_after_generate": "fixed",
+        "guidance": 4,
+        "drop_background_tokens": true,
+        "memory_factor": 0,
+        "attention": "ultratex_sparse",
+        "sparse_topk": 0.2,
+        "token_chunk": 8192
       }
     }
   ],
@@ -861,36 +832,12 @@
       "MODEL"
     ],
     [
-      6,
-      7,
-      0,
-      4,
-      0,
-      "MODEL"
-    ],
-    [
       7,
       6,
       0,
       8,
       0,
       "VAE"
-    ],
-    [
-      8,
-      8,
-      0,
-      4,
-      1,
-      "VAE"
-    ],
-    [
-      9,
-      2,
-      0,
-      4,
-      3,
-      "ULTRATEX_PREP"
     ],
     [
       10,
@@ -899,14 +846,6 @@
       10,
       0,
       "CLIP"
-    ],
-    [
-      11,
-      10,
-      0,
-      4,
-      2,
-      "CONDITIONING"
     ],
     [
       12,
@@ -915,14 +854,6 @@
       11,
       0,
       "CLIP"
-    ],
-    [
-      13,
-      11,
-      0,
-      4,
-      4,
-      "CONDITIONING"
     ],
     [
       14,
@@ -931,22 +862,6 @@
       12,
       0,
       "ULTRATEX_PREP"
-    ],
-    [
-      15,
-      4,
-      0,
-      12,
-      1,
-      "IMAGE"
-    ],
-    [
-      17,
-      4,
-      0,
-      16,
-      0,
-      "IMAGE"
     ],
     [
       20,
@@ -979,16 +894,72 @@
       2,
       2,
       "TRIMESH"
+    ],
+    [
+      32,
+      7,
+      0,
+      25,
+      0,
+      "MODEL"
+    ],
+    [
+      33,
+      8,
+      0,
+      25,
+      1,
+      "VAE"
+    ],
+    [
+      34,
+      10,
+      0,
+      25,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      35,
+      2,
+      0,
+      25,
+      3,
+      "ULTRATEX_PREP"
+    ],
+    [
+      36,
+      11,
+      0,
+      25,
+      4,
+      "CONDITIONING"
+    ],
+    [
+      37,
+      25,
+      0,
+      12,
+      1,
+      "IMAGE"
+    ],
+    [
+      38,
+      25,
+      0,
+      24,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.5131581182307068,
+      "scale": 0.7627768444385475,
       "offset": [
-        211.7318161171013,
-        598.358795335191
+        -299.27673398858065,
+        373.40635070192627
       ]
     },
     "frontendVersion": "1.53.10",

@@ -1,8 +1,8 @@
 {
   "id": "ec128ec0-1103-4d82-86ba-136f1bae4753",
   "revision": 0,
-  "last_node_id": 25,
-  "last_link_id": 32,
+  "last_node_id": 27,
+  "last_link_id": 34,
   "nodes": [
     {
       "id": 2,
@@ -16,7 +16,7 @@
         218
       ],
       "flags": {},
-      "order": 11,
+      "order": 10,
       "mode": 0,
       "inputs": [
         {
@@ -59,15 +59,16 @@
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexPrep"
+        "Node name for S&R": "UltraTexPrep",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
         "",
         4096,
         4096,
-        "xatlas",
+        "comfy_gpu",
         "fit_front_silhouette",
         "background (LoadImage)"
       ],
@@ -75,7 +76,7 @@
         "mesh_path": "",
         "render_size": 4096,
         "atlas_size": 4096,
-        "uv_mode": "xatlas",
+        "uv_mode": "comfy_gpu",
         "reference_alignment": "fit_front_silhouette",
         "mask_meaning": "background (LoadImage)"
       }
@@ -84,15 +85,15 @@
       "id": 4,
       "type": "UltraTexSampler",
       "pos": [
-        1562.2314545662555,
-        -411.360925127577
+        1574.0417891479212,
+        -489.30960912757723
       ],
       "size": [
         307.080078125,
-        282
+        354
       ],
       "flags": {},
-      "order": 12,
+      "order": 11,
       "mode": 0,
       "inputs": [
         {
@@ -128,7 +129,7 @@
           "type": "IMAGE",
           "links": [
             15,
-            17
+            33
           ]
         },
         {
@@ -144,27 +145,34 @@
       ],
       "title": "UltraTex Sampler (Albedo)",
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexSampler"
+        "Node name for S&R": "UltraTexSampler",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
-        1024,
+        2048,
         25,
         12345,
         "fixed",
         4,
         true,
-        28
+        0,
+        "ultratex_sparse",
+        0.2,
+        8192
       ],
       "widgets_values_named": {
-        "resolution": 1024,
+        "resolution": 2048,
         "steps": 25,
         "seed": 12345,
         "control_after_generate": "fixed",
         "guidance": 4,
         "drop_background_tokens": true,
-        "memory_factor": 28
+        "memory_factor": 0,
+        "attention": "ultratex_sparse",
+        "sparse_topk": 0.2,
+        "token_chunk": 8192
       }
     },
     {
@@ -254,7 +262,7 @@
         82
       ],
       "flags": {},
-      "order": 6,
+      "order": 5,
       "mode": 0,
       "inputs": [
         {
@@ -273,9 +281,10 @@
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexLoraLoader"
+        "Node name for S&R": "UltraTexLoraLoader",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
         "ultratex_flux2.safetensors",
@@ -298,7 +307,7 @@
         61.904296453857455
       ],
       "flags": {},
-      "order": 8,
+      "order": 7,
       "mode": 0,
       "inputs": [
         {
@@ -318,9 +327,10 @@
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexForegroundDecoder"
+        "Node name for S&R": "UltraTexForegroundDecoder",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
         "ultratex_flux2_decoder.pt"
@@ -382,7 +392,7 @@
         200
       ],
       "flags": {},
-      "order": 9,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
@@ -428,7 +438,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 10,
+      "order": 9,
       "mode": 0,
       "inputs": [
         {
@@ -472,7 +482,7 @@
         234
       ],
       "flags": {},
-      "order": 15,
+      "order": 14,
       "mode": 0,
       "inputs": [
         {
@@ -522,19 +532,20 @@
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexBake"
+        "Node name for S&R": "UltraTexBake",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
-        2048,
+        4096,
         "UltraTex/DwarfWarriorPBR",
         4,
         0.5,
         6
       ],
       "widgets_values_named": {
-        "texture_size": 2048,
+        "texture_size": 4096,
         "filename_prefix": "UltraTex/DwarfWarriorPBR",
         "view_weight_power": 4,
         "best_view_mix": 0.5,
@@ -553,7 +564,7 @@
         684.8747208251951
       ],
       "flags": {},
-      "order": 17,
+      "order": 16,
       "mode": 0,
       "inputs": [
         {
@@ -694,40 +705,6 @@
       }
     },
     {
-      "id": 16,
-      "type": "PreviewImage",
-      "pos": [
-        1906.6760493750926,
-        -784.4050374800688
-      ],
-      "size": [
-        311.56956941833505,
-        269.5848938264916
-      ],
-      "flags": {},
-      "order": 14,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 17
-        }
-      ],
-      "outputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.38.0",
-        "Node name for S&R": "PreviewImage"
-      }
-    },
-    {
       "id": 19,
       "type": "LoadImage",
       "pos": [
@@ -773,52 +750,6 @@
       }
     },
     {
-      "id": 21,
-      "type": "UnwrapMesh",
-      "pos": [
-        562.815061192333,
-        624.1288897898696
-      ],
-      "size": [
-        270,
-        130
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "mesh",
-          "type": "MESH",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "mesh",
-          "type": "MESH",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.38.0",
-        "Node name for S&R": "UnwrapMesh"
-      },
-      "widgets_values": [
-        "pec",
-        1024,
-        1,
-        0
-      ],
-      "widgets_values_named": {
-        "segmenter": "pec",
-        "resolution": 1024,
-        "padding": 1,
-        "weld_distance": 0
-      }
-    },
-    {
       "id": 22,
       "type": "UltraTexLoadMesh",
       "pos": [
@@ -830,7 +761,7 @@
         82
       ],
       "flags": {},
-      "order": 5,
+      "order": 4,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -843,9 +774,10 @@
         }
       ],
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexLoadMesh"
+        "Node name for S&R": "UltraTexLoadMesh",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
         "C:\\Git\\ComfyUI\\output\\3D\\DwarfWarrior_MV_Qwen\\DwarfWarrior_MV_Qwen_WhiteMesh_00001_.glb",
@@ -868,7 +800,7 @@
         84.3620452908325
       ],
       "flags": {},
-      "order": 7,
+      "order": 6,
       "mode": 0,
       "inputs": [
         {
@@ -909,10 +841,10 @@
       ],
       "size": [
         307.080078125,
-        282
+        354
       ],
       "flags": {},
-      "order": 13,
+      "order": 12,
       "mode": 0,
       "inputs": [
         {
@@ -948,7 +880,7 @@
           "type": "IMAGE",
           "links": [
             31,
-            32
+            34
           ]
         },
         {
@@ -964,9 +896,10 @@
       ],
       "title": "UltraTex Sampler (Metallic Roughness)",
       "properties": {
-        "aux_id": "visualbruno/ComfyUI-UltraTex",
+        "cnr_id": "ultratex",
         "ver": "unknown",
-        "Node name for S&R": "UltraTexSampler"
+        "Node name for S&R": "UltraTexSampler",
+        "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
         1024,
@@ -975,7 +908,10 @@
         "fixed",
         4,
         true,
-        28
+        0,
+        "ultratex_sparse",
+        0.2,
+        8192
       ],
       "widgets_values_named": {
         "resolution": 1024,
@@ -984,28 +920,31 @@
         "control_after_generate": "fixed",
         "guidance": 4,
         "drop_background_tokens": true,
-        "memory_factor": 28
+        "memory_factor": 0,
+        "attention": "ultratex_sparse",
+        "sparse_topk": 0.2,
+        "token_chunk": 8192
       }
     },
     {
-      "id": 25,
-      "type": "PreviewImage",
+      "id": 26,
+      "type": "SaveImage",
       "pos": [
-        1957.9562690278015,
-        333.4284753905884
+        2037.947698021131,
+        -773.2546343701498
       ],
       "size": [
-        140,
-        26
+        270,
+        58
       ],
       "flags": {},
-      "order": 16,
+      "order": 13,
       "mode": 0,
       "inputs": [
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 32
+          "link": 33
         }
       ],
       "outputs": [
@@ -1017,8 +956,52 @@
       ],
       "properties": {
         "cnr_id": "comfy-core",
-        "ver": "0.38.0",
-        "Node name for S&R": "PreviewImage"
+        "ver": "0.38.0"
+      },
+      "widgets_values": [
+        "UltraTex_Albedo"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "UltraTex_Albedo"
+      }
+    },
+    {
+      "id": 27,
+      "type": "SaveImage",
+      "pos": [
+        1983.6196831844607,
+        351.0960622752657
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 34
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0"
+      },
+      "widgets_values": [
+        "UltraTex_Metallic"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "UltraTex_Metallic"
       }
     }
   ],
@@ -1112,14 +1095,6 @@
       "IMAGE"
     ],
     [
-      17,
-      4,
-      0,
-      16,
-      0,
-      "IMAGE"
-    ],
-    [
       20,
       19,
       0,
@@ -1208,10 +1183,18 @@
       "IMAGE"
     ],
     [
-      32,
+      33,
+      4,
+      0,
+      26,
+      0,
+      "IMAGE"
+    ],
+    [
+      34,
       24,
       0,
-      25,
+      27,
       0,
       "IMAGE"
     ]
@@ -1220,10 +1203,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.5644739300537776,
+      "scale": 0.6209213230591558,
       "offset": [
-        60.389155560533595,
-        781.7928707922089
+        -431.53492966114675,
+        684.5737543697528
       ]
     },
     "frontendVersion": "1.53.10",

@@ -151,7 +151,7 @@ class UltraTexPrep:
                 "mesh_path": ("STRING", {"default": "", "tooltip": "Mesh file (glb/obj/ply/...), absolute or relative to the input folder. Ignored when a TRIMESH is connected."}),
                 "render_size": ("INT", {"default": 4096, "min": 512, "max": 4096, "step": 512, "tooltip": "TexVerse renders are 4096 px, then resized to the sampling resolution."}),
                 "atlas_size": ("INT", {"default": 4096, "min": 512, "max": 8192, "step": 512, "tooltip": "Texture resolution the xatlas charts are packed for."}),
-                "uv_mode": (["xatlas", "keep_existing"],),
+                "uv_mode": (["comfy_gpu", "xatlas", "keep_existing"], {"default": "comfy_gpu", "tooltip": "comfy_gpu: ComfyUI's GPU unwrapper (same as the 'Unwrap Mesh UVs' node), seconds instead of minutes. xatlas: CPU, slow on dense meshes. keep_existing: the mesh's own UVs."}),
                 "reference_alignment": (["fit_front_silhouette", "center"], {"tooltip": "fit_front_silhouette: crop the reference to its mask and fit it on the front view's silhouette."}),
                 "mask_meaning": (["background (LoadImage)", "foreground"], {"tooltip": "LoadImage's MASK is 1 on transparent pixels; background-removal nodes usually output 1 on the object."}),
             },
@@ -214,7 +214,10 @@ class UltraTexSampler:
             },
             "optional": {
                 "negative": ("CONDITIONING",),
-                "memory_factor": ("FLOAT", {"default": 28.0, "min": 1.0, "max": 200.0, "step": 1.0, "tooltip": "Activation memory estimate per token (x hidden x dtype). Raise it if you get out-of-memory errors."}),
+                "memory_factor": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 200.0, "step": 1.0, "tooltip": "VRAM kept free for activations, per token (x hidden x dtype). 0 = auto (12 with token chunking, 28 without). Raise it on out-of-memory errors."}),
+                "attention": (["ultratex_sparse", "comfy_default"], {"default": "ultratex_sparse", "tooltip": "ultratex_sparse: UltraTex's block-sparse top-k attention (Triton), the attention UltraTex was trained with; ~4x faster than flash attention at 2048. comfy_default: dense attention from ComfyUI's backend."}),
+                "sparse_topk": ("FLOAT", {"default": 0.2, "min": 0.05, "max": 1.0, "step": 0.05, "tooltip": "Fraction of key blocks each query block attends to (UltraTex default 0.2; 1.0 = dense)."}),
+                "token_chunk": ("INT", {"default": 8192, "min": 0, "max": 131072, "step": 1024, "tooltip": "Compute the DiT MLPs in chunks of this many tokens to cut activation memory (0 = off). Same result, keeps the whole model on the GPU at 2048."}),
             },
         }
 
@@ -223,10 +226,12 @@ class UltraTexSampler:
     FUNCTION = "sample"
     CATEGORY = CATEGORY
 
-    def sample(self, model, vae, positive, prep, resolution, steps, seed, guidance, drop_background_tokens, negative=None, memory_factor=28.0):
+    def sample(self, model, vae, positive, prep, resolution, steps, seed, guidance, drop_background_tokens, negative=None,
+               memory_factor=0.0, attention="ultratex_sparse", sparse_topk=0.2, token_chunk=8192):
         if resolution % 16:
             raise ValueError("UltraTex: resolution must be a multiple of 16")
-        views, masks = sampling.sample(model, vae, positive, negative, prep, resolution, steps, seed, guidance, drop_background_tokens, memory_factor)
+        views, masks = sampling.sample(model, vae, positive, negative, prep, resolution, steps, seed, guidance,
+                                       drop_background_tokens, memory_factor, attention, sparse_topk, token_chunk)
         rows = [torch.cat([views[v] for v in row], dim=1) for row in sampling.GRID_ORDER]
         atlas = torch.cat(rows, dim=0)[None]
         return (views, masks, atlas)

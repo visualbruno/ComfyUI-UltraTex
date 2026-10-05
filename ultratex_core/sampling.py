@@ -178,10 +178,17 @@ def sample(
     seed: int,
     guidance: float,
     drop_background_tokens: bool = True,
-    memory_factor: float = 28.0,
+    memory_factor: float = 0.0,
+    attention: str = "ultratex_sparse",
+    sparse_topk: float = 0.2,
+    token_chunk: int = 8192,
 ):
+    import time
+
     import comfy.model_management as mm
     import comfy.utils
+
+    from . import optim
 
     family = model_family(model)
     dm = model.model.diffusion_model
@@ -239,12 +246,26 @@ def sample(
     total_tokens = x_ids.shape[1] + ctx.shape[1]
     dtype = compute_dtype(model)
     batch = 2 if use_cfg else 1
+    if memory_factor <= 0:  # auto: peak activations per token, measured (x hidden x dtype size)
+        memory_factor = 12.0 if token_chunk > 0 else 28.0
     mem = int(total_tokens * bb.hidden * mm.dtype_size(dtype) * memory_factor * batch)
     mm.load_models_gpu([model], memory_required=mem)
     device = mm.get_torch_device()
+
+    transformer_options = model.model_options.get("transformer_options", {}).copy()
+    if attention == "ultratex_sparse":
+        err = optim.check_sparse_attention()
+        if err is None:
+            transformer_options["optimized_attention_override"] = optim.sparse_attention_override(sparse_topk)
+        else:
+            log.warning("UltraTex: sparse attention unavailable (%s), using ComfyUI attention", err)
+            attention = "comfy_default"
+    if attention != "ultratex_sparse" and optim.PROF.enabled:
+        transformer_options["optimized_attention_override"] = optim.timing_attention_override()
     log.info(
-        "UltraTex %s: %d/%d target tokens, %d reference tokens, %d text tokens, %s, cfg=%s",
-        family, n_fg, th * tw, refs.shape[1], ctx.shape[1], dtype, use_cfg,
+        "UltraTex %s: %d/%d target tokens, %d reference tokens, %d text tokens, %s, cfg=%s, attention=%s%s, chunk=%s, reserve=%.1f GB",
+        family, n_fg, th * tw, refs.shape[1], ctx.shape[1], dtype, use_cfg, attention,
+        f"(top-k {sparse_topk})" if attention == "ultratex_sparse" else "", token_chunk or "off", mem / 2**30,
     )
 
     x = x.to(device)
@@ -255,23 +276,33 @@ def sample(
     txt_ids_d = txt_ids.to(device)
     y_d = y.to(device, dtype).expand(batch, -1) if (family == "flux1" and y is not None) else None
     guid_d = torch.full((batch,), guidance, device=device, dtype=dtype) if family == "flux1" else None
-    transformer_options = model.model_options.get("transformer_options", {}).copy()
 
     sched_len = ((R * 3) // 8) * ((R * 2) // 8) // (16 * 16)
     timesteps = uno_schedule(steps, sched_len)
     pbar = comfy.utils.ProgressBar(steps)
-    for t_curr, t_prev in zip(timesteps[:-1], timesteps[1:]):
-        mm.throw_exception_if_processing_interrupted()
-        x_fg = x[:, tgt_idx_d]
-        inp = torch.cat([x_fg.to(dtype), refs_d], dim=1).expand(batch, -1, -1)
-        t_vec = torch.full((batch,), t_curr, device=device, dtype=dtype)
-        pred = dm.forward_orig(
-            inp, ids_d, ctx_d, txt_ids_d, t_vec, y_d, guidance=guid_d, transformer_options=transformer_options
-        )[:, :n_fg].float()
-        if use_cfg:
-            pred = pred[0:1] + guidance * (pred[1:2] - pred[0:1])
-        x[:, tgt_idx_d] = x_fg + (t_prev - t_curr) * pred
-        pbar.update(1)
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
+    t_start = time.time()
+    with optim.chunked_model(dm, transformer_options, token_chunk) as topts:
+        for i, (t_curr, t_prev) in enumerate(zip(timesteps[:-1], timesteps[1:])):
+            mm.throw_exception_if_processing_interrupted()
+            t_step = time.time()
+            x_fg = x[:, tgt_idx_d]
+            inp = torch.cat([x_fg.to(dtype), refs_d], dim=1).expand(batch, -1, -1)
+            t_vec = torch.full((batch,), t_curr, device=device, dtype=dtype)
+            pred = dm.forward_orig(
+                inp, ids_d, ctx_d, txt_ids_d, t_vec, y_d, guidance=guid_d, transformer_options=topts
+            )[:, :n_fg].float()
+            if use_cfg:
+                pred = pred[0:1] + guidance * (pred[1:2] - pred[0:1])
+            x[:, tgt_idx_d] = x_fg + (t_prev - t_curr) * pred
+            pbar.update(1)
+            optim.PROF.report(i + 1, time.time() - t_step)
+            if i == 0:
+                log.info("UltraTex: first step %.1fs", time.time() - t_start)
+    peak = torch.cuda.max_memory_allocated(device) / 2**30 if device.type == "cuda" else 0.0
+    log.info("UltraTex: %d steps in %.0fs (%.1fs/step), peak VRAM %.1f GB", steps, time.time() - t_start,
+             (time.time() - t_start) / max(steps, 1), peak)
 
     # ---- decode: foreground into the black-background latent, then tile by tile
     out_tokens = bg_tokens.to(device).clone()

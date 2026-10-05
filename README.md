@@ -14,7 +14,7 @@ memory management, fp8/GGUF weights and offloading all apply.
 |---|---|
 | **UltraTex Load LoRA** | Applies an UltraTex LoRA. The stock *Load LoRA* node can't read these checkpoints (PEFT `lora_A.default` keys for FLUX.2, UNO `processor.*_lora` keys for FLUX.1). |
 | **UltraTex Foreground VAE Decoder** | Replaces the VAE decoder with UltraTex's Foreground-Aware decoder (`decoder.pt`). |
-| **UltraTex Prep (mesh + reference)** | Normalises the mesh, UV-unwraps it (xatlas, or keeps existing UVs), renders the 6 canonical G-buffer TexVerse views (world normals + masks) and aligns the reference image to the front view. |
+| **UltraTex Prep (mesh + reference)** | Normalises the mesh, UV-unwraps it (`comfy_gpu`: ComfyUI's GPU unwrapper from the *Unwrap Mesh UVs* node, ~6 s for 500k faces; `xatlas`: CPU, ~4.6 min for 500k faces; or `keep_existing` UVs), renders the 6 canonical G-buffer TexVerse views (world normals + masks) and aligns the reference image to the front view. |
 | **UltraTex Sampler** | UltraTex sampling: background-token dropping, normal-map + reference conditioning, UNO schedule. Outputs the 6 views (in view order front, left, back, right, top, bottom), their masks and the 2×3 atlas. |
 | **UltraTex Bake Texture** | Back-projects the views into a UV texture (visibility + view-angle weighted blend, occlusion fill), saves `output/<prefix>_XXXXX_.glb` (+ albedo / ORM png) and returns a TRIMESH, the texture, an 8-view preview, the GLB path and `model_3d` (connect it straight to *Preview 3D*). |
 
@@ -61,17 +61,41 @@ Both samplers share the same VAE (FLUX.2 foreground decoder), positive condition
 The bake writes a glTF ORM texture (G = roughness, B = metallic). MR maps are low-frequency, so the MR
 sampler can run at 1024 even when albedo runs at 2048.
 
-## Performance (RTX 3080 Laptop 16 GB, fp8 Klein base 9B, 25 steps)
+## Performance (RTX 3080 Laptop 16 GB, fp8 Klein base 9B, 25 steps, ComfyUI dynamic VRAM)
 
-| resolution | tokens in the DiT | time |
-|---|---|---|
-| 1024 | ~10k | ~3 min |
-| 2048 | ~31k | ~25 min |
+Anime-girl test asset (T-pose; bulkier objects have more foreground tokens and are slower):
+
+| resolution | tokens in the DiT | sampling | whole workflow (prep cached, 4K bake) |
+|---|---|---|---|
+| 1024 | ~10k | 118 s (4.7 s/step) | ~2.3 min |
+| 2048 | ~32k | 472 s (18.9 s/step) | ~9.6 min |
+
+Sampler optimisations (on by default):
+
+* `attention = ultratex_sparse` — UltraTex's block-sparse top-k attention (vendored SLA Triton kernel,
+  the attention UltraTex is trained with). 4.4x faster than flash-attention at 64k tokens. At ~32k
+  tokens the linear layers dominate (~37 TFLOPs bf16, compute bound), so the step gain is ~20%; for
+  bulky meshes at 2048 (60k+ tokens) attention dominates and the gain is much larger.
+* `token_chunk = 8192` — DiT MLPs computed in token chunks (identical result up to bf16 rounding), so
+  activation memory stays small and the whole model stays on the GPU at 2048.
+* CFG is skipped when the negative equals the positive (empty prompts).
+* `memory_factor = 0` (auto) sizes the VRAM reserve for the chunked activations.
+
+Other levers: fewer `steps` (time is linear in steps), `sparse_topk` 0.1 (faster attention, may cost
+detail), run the metallic-roughness sampler at 1024.
+
+Where the time goes (2048, bulky 500k-face character, 62k DiT tokens, `ULTRATEX_PROFILE=1`):
+single-block linear1 ~16 s, linear2 ~7 s, double blocks ~8 s, attention ~12.5 s per step, i.e. ~40-45 s
+per step. The matmuls run at ~75% of the GPU's burst bf16 rate; on laptops sustained runs are limited
+by thermal throttling (observed: 87 °C, SM clock 1110 of 2100 MHz), so cooling / power mode matters more
+than any remaining software setting. Set the environment variable `ULTRATEX_PROFILE=1` before starting
+ComfyUI to log this breakdown for every step (it adds CUDA syncs, so leave it off normally).
 
 ## Notes
 
 * Camera / normal conventions were reverse-engineered from the G-buffer TexVerse samples: 6 views at
   distance 1.67, 35.5° FoV, mesh centred and scaled to a bounding radius of 0.5, world normals stored as
   Blender `(x, y, -z)`.
-* UltraTex code is MIT licensed; the sparse-attention kernels it trains with are not used here yet
-  (ComfyUI's attention backend is used).
+* UltraTex code is MIT licensed. `ultratex_core/sparse_attention/` is UltraTex's vendored copy of
+  [SLA](https://github.com/thu-ml/SLA) (Apache-2.0, see its `LICENSE.txt` and `PATCHES.md`); it needs
+  Triton (`triton-windows` on Windows). Without it the sampler falls back to ComfyUI's attention.

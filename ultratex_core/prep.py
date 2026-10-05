@@ -50,6 +50,29 @@ def unwrap_xatlas(vertices: np.ndarray, faces: np.ndarray, resolution: int, padd
     return vmapping, new_faces, uvs
 
 
+def unwrap_comfy(vertices: np.ndarray, faces: np.ndarray, resolution: int, padding: int = 4):
+    """ComfyUI's GPU UV unwrapper ("Unwrap Mesh UVs" node, pec segmenter): much faster than xatlas.
+
+    Returns (vmapping, faces, uvs) like xatlas; UVs in trimesh/OpenGL convention (v up).
+    Raises ImportError on ComfyUI versions without comfy_extras.mesh3d.
+    """
+    import torch
+
+    import comfy.model_management as mm
+    from comfy_extras import nodes_mesh_postprocess as mp
+
+    device = mm.get_torch_device()
+    mp._prepare_gpu_mesh_processing(device, len(faces) * 14 * 1024)
+    vmapping, new_faces, uvs = mp._uv_unwrap(
+        torch.from_numpy(np.ascontiguousarray(vertices, dtype=np.float32)).to(device),
+        torch.from_numpy(np.ascontiguousarray(faces, dtype=np.int64)).to(device),
+        "pec", int(resolution), int(padding), 0.0,
+    )
+    uvs = np.array(uvs, dtype=np.float32, copy=True)
+    uvs[:, 1] = 1.0 - uvs[:, 1]  # ComfyUI's unwrapper is v-down; trimesh / our GL path are v-up
+    return np.asarray(vmapping), np.asarray(new_faces), uvs
+
+
 def sanitize_normals(vertices: np.ndarray, faces: np.ndarray, normals: np.ndarray) -> np.ndarray:
     """Replace NaN / zero vertex normals (degenerate faces, unreferenced vertices, bad file normals).
 
@@ -93,10 +116,18 @@ def prepare_mesh(mesh_obj, uv_mode: str, atlas_size: int):
         log.info("UltraTex prep: keeping the mesh's existing UVs")
         return vertices, normals, faces, uvs, centre, scale
     if uv_mode == "keep_existing":
-        log.warning("UltraTex prep: mesh has no usable UVs, falling back to xatlas")
+        log.warning("UltraTex prep: mesh has no usable UVs, falling back to the GPU unwrapper")
+        uv_mode = "comfy_gpu"
     t = time.time()
-    vmapping, faces_uv, uvs = unwrap_xatlas(vertices, faces, atlas_size)
-    log.info("UltraTex prep: xatlas unwrap of %d faces took %.1fs", len(faces), time.time() - t)
+    if uv_mode == "comfy_gpu":
+        try:
+            vmapping, faces_uv, uvs = unwrap_comfy(vertices, faces, atlas_size)
+        except ImportError as exc:
+            log.warning("UltraTex prep: ComfyUI's UV unwrapper is unavailable (%s), using xatlas", exc)
+            uv_mode = "xatlas"
+    if uv_mode == "xatlas":
+        vmapping, faces_uv, uvs = unwrap_xatlas(vertices, faces, atlas_size)
+    log.info("UltraTex prep: %s unwrap of %d faces took %.1fs", uv_mode, len(faces), time.time() - t)
     return vertices[vmapping], normals[vmapping], faces_uv.astype(np.int64), uvs.astype(np.float32), centre, scale
 
 
