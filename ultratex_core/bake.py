@@ -32,6 +32,7 @@ class BakeSettings:
     edge_px: float = 6.0
     best_view_mix: float = 0.5
     min_weight: float = 1e-4
+    white_rim_px: float = 12.0  # at 1024 px views; near-white pixels this close inside a silhouette are dropped
 
 
 def bilinear(img: np.ndarray, x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -46,6 +47,26 @@ def bilinear(img: np.ndarray, x: np.ndarray, y: np.ndarray) -> np.ndarray:
         + img[y0 + 1, x0] * (1 - fx) * fy
         + img[y0 + 1, x0 + 1] * fx * fy
     )
+
+
+def _drop_white_rim(view: np.ndarray, mask: np.ndarray, rim_px: float) -> np.ndarray:
+    """Valid-pixel mask without the near-white rim the model sometimes leaves just inside silhouettes
+    (generated outline a few pixels inside the true one, the gap left as white background)."""
+    if rim_px <= 0:
+        return mask
+    rim_px = rim_px * view.shape[0] / 1024.0
+    near_edge = ndimage.distance_transform_edt(mask) <= rim_px
+    rim = mask & near_edge & (view > 0.9).all(-1)
+    return mask & ~rim
+
+
+def _extend_into_background(view: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """Copy the nearest foreground colour into background pixels, so bilinear lookups at silhouettes never
+    blend in the white background (that showed up as white fringes on sleeves / hands / boots)."""
+    if mask.all() or not mask.any():
+        return view
+    _, (iy, ix) = ndimage.distance_transform_edt(~mask, return_indices=True)
+    return view[iy, ix]
 
 
 class Baker:
@@ -102,8 +123,9 @@ class Baker:
         for views, masks, rig in view_sets:
             for view in range(6):
                 size = views[view].shape[0]
-                u, v, w, q = self._view_geometry(view, size, masks[view], s, rig)
-                col = bilinear(views[view], u - 0.5, v - 0.5)
+                valid = _drop_white_rim(views[view], masks[view], s.white_rim_px)
+                u, v, w, q = self._view_geometry(view, size, valid, s, rig)
+                col = bilinear(_extend_into_background(views[view], valid), u - 0.5, v - 0.5)
                 acc += w[:, None] * col
                 wsum += w
                 better = w > best_w

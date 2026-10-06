@@ -31,6 +31,23 @@ memory management, fp8/GGUF weights and offloading all apply.
 FLUX.1: `flux1-dev` in `models/diffusion_models`, `ae.safetensors` (FLUX.1 VAE), DualCLIPLoader with
 `clip_l` + `t5xxl` (type `flux`), `flux1/lora/dit_lora.safetensors` and `flux1/decoder.pt`.
 
+FLUX.1 settings (verified against UltraTex's own FLUX.1 model code: identical DiT prediction on the same
+inputs, cosine 0.9995):
+
+* **Reference positions are kept at their 2048 offsets at any resolution.** FLUX.1 (UNO `pe='d'`) places
+  the normal-map and reference tokens at h/w offsets equal to the grid sizes, which the LoRA learned at
+  2048. At 1024 the native, halved offsets made the model lose the target-normal correspondence (face
+  painted on the back view, incoherent side views); the sampler now always uses the 2048 offsets
+  (no change at 2048; FLUX.2 uses resolution-independent t-planes and is unaffected).
+* **guidance ~2.** 1 gives the colours closest to the reference but softer detail, 4 (UltraTex's own
+  FLUX.1 default) is crisper but more saturated.
+* **UltraTex Text Encode** instead of CLIP Text Encode: ComfyUI pads FLUX.1's T5 context to 256 tokens,
+  UltraTex uses 512 (small effect, but this matches training).
+
+Bake: near-white pixels in a thin band just inside each view's silhouette are ignored (the model
+sometimes draws the outline a few pixels inside the true one and leaves the gap white, which showed up as
+white fringes on sleeves / boots), and view colours are extended past the silhouette before sampling.
+
 ## Workflow (FLUX.2)
 
 ```

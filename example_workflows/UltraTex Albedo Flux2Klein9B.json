@@ -1,22 +1,22 @@
 {
   "id": "518730f6-ad18-4baf-bfee-757f47061db9",
   "revision": 0,
-  "last_node_id": 32,
-  "last_link_id": 71,
+  "last_node_id": 42,
+  "last_link_id": 86,
   "nodes": [
     {
       "id": 2,
       "type": "UltraTexPrep",
       "pos": [
-        985.5469226799096,
-        475.2961383234046
+        950.3573806831662,
+        468.2582556977091
       ],
       "size": [
         365.6252996544007,
         220.46673492557227
       ],
       "flags": {},
-      "order": 9,
+      "order": 12,
       "mode": 0,
       "inputs": [
         {
@@ -86,8 +86,8 @@
       "id": 5,
       "type": "UNETLoader",
       "pos": [
-        448.48052371385296,
-        -286.4424891954208
+        446.15386574286856,
+        -271.31969164616936
       ],
       "size": [
         415.1999999999998,
@@ -124,8 +124,8 @@
       "id": 6,
       "type": "VAELoader",
       "pos": [
-        463.14460070020783,
-        -142.95321400926366
+        413.12294536183407,
+        -116.19744611318812
       ],
       "size": [
         349.05338256835944,
@@ -168,7 +168,7 @@
         82
       ],
       "flags": {},
-      "order": 5,
+      "order": 10,
       "mode": 0,
       "inputs": [
         {
@@ -214,7 +214,7 @@
         61.904296453857455
       ],
       "flags": {},
-      "order": 6,
+      "order": 11,
       "mode": 0,
       "inputs": [
         {
@@ -247,149 +247,18 @@
       }
     },
     {
-      "id": 9,
-      "type": "CLIPLoader",
-      "pos": [
-        468.41648214280826,
-        -14.856115552775039
-      ],
-      "size": [
-        355.5066912841796,
-        126.16661743164059
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "CLIP",
-          "type": "CLIP",
-          "links": [
-            10,
-            12
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.38.0",
-        "Node name for S&R": "CLIPLoader"
-      },
-      "widgets_values": [
-        "qwen_3_8b_fp8mixed.safetensors",
-        "flux2",
-        "default"
-      ],
-      "widgets_values_named": {
-        "clip_name": "qwen_3_8b_fp8mixed.safetensors",
-        "type": "flux2",
-        "device": "default"
-      }
-    },
-    {
-      "id": 10,
-      "type": "CLIPTextEncode",
-      "pos": [
-        965.2469833079016,
-        0.9000820248073801
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 10
-        }
-      ],
-      "outputs": [
-        {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "links": [
-            34,
-            44
-          ]
-        }
-      ],
-      "title": "CLIP Text Encode (Prompt) Positive",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.38.0",
-        "Node name for S&R": "CLIPTextEncode"
-      },
-      "widgets_values": [
-        ""
-      ],
-      "widgets_values_named": {
-        "text": ""
-      }
-    },
-    {
-      "id": 11,
-      "type": "CLIPTextEncode",
-      "pos": [
-        983.3445413089175,
-        272.66850141497724
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {
-        "collapsed": true
-      },
-      "order": 8,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 12
-        }
-      ],
-      "outputs": [
-        {
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "links": [
-            36,
-            45
-          ]
-        }
-      ],
-      "title": "CLIP Text Encode (Prompt) Negative",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.38.0",
-        "Node name for S&R": "CLIPTextEncode"
-      },
-      "widgets_values": [
-        ""
-      ],
-      "widgets_values_named": {
-        "text": ""
-      }
-    },
-    {
       "id": 15,
       "type": "Preview3DAdvanced",
       "pos": [
-        2969.2485150773073,
-        -119.29362816379394
+        2424.5130750472113,
+        -458.5216841618802
       ],
       "size": [
-        536.6494416503906,
-        684.8747208251951
+        773.2499254468771,
+        867.2403133009605
       ],
       "flags": {},
-      "order": 17,
+      "order": 21,
       "mode": 0,
       "inputs": [
         {
@@ -447,9 +316,9 @@
           "hasCustomUp": false,
           "state": {
             "position": {
-              "x": 0.24503855524932897,
-              "y": 0.13383728473836465,
-              "z": 1.6995743880609773
+              "x": -0.10543128270791112,
+              "y": 0.1432793224515821,
+              "z": 2.0009792546874094
             },
             "target": {
               "x": 0,
@@ -459,10 +328,10 @@
             "zoom": 1,
             "cameraType": "perspective",
             "quaternion": {
-              "x": -0.03878276652060598,
-              "y": 0.07147961237996571,
-              "z": 0.0027814004791234304,
-              "w": 0.996683914712379
+              "x": -0.03567202049904388,
+              "y": -0.02630078193590956,
+              "z": -0.000939125226496475,
+              "w": 0.9990169637533113
             },
             "fov": 35,
             "aspect": 1,
@@ -476,7 +345,7 @@
             }
           }
         },
-        "Last Time Model File": "preview3d_advanced_51bdc4478c4c40d5b0bf136da1f66b18.glb [temp]",
+        "Last Time Model File": "preview3d_advanced_b2b0b0493e3f40cdaca1a2c054f9ef01.glb [temp]",
         "Light Config": {
           "intensity": 3,
           "hdri": {
@@ -552,15 +421,15 @@
       "id": 19,
       "type": "LoadImage",
       "pos": [
-        -65.82273796324208,
-        -65.92402483910709
+        -194.65989488078776,
+        -330.95304849628604
       ],
       "size": [
         426.67107117462143,
         509.4085139007566
       ],
       "flags": {},
-      "order": 3,
+      "order": 2,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -597,15 +466,15 @@
       "id": 22,
       "type": "UltraTexLoadMesh",
       "pos": [
-        7.953782301970113,
-        555.703334163813
+        -155.1537381513162,
+        235.4877745638349
       ],
       "size": [
         300.095703125,
         82
       ],
       "flags": {},
-      "order": 4,
+      "order": 3,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -625,11 +494,11 @@
       },
       "widgets_values": [
         "C:\\Git\\ComfyUI\\output\\3D\\DwarfSorcerer_MV\\DwarfSorcerer_MV_00001_.glb",
-        false
+        true
       ],
       "widgets_values_named": {
         "glb_path": "C:\\Git\\ComfyUI\\output\\3D\\DwarfSorcerer_MV\\DwarfSorcerer_MV_00001_.glb",
-        "only_vertices_and_faces": false
+        "only_vertices_and_faces": true
       }
     },
     {
@@ -644,7 +513,7 @@
         270
       ],
       "flags": {},
-      "order": 12,
+      "order": 16,
       "mode": 0,
       "inputs": [
         {
@@ -683,7 +552,7 @@
         418
       ],
       "flags": {},
-      "order": 10,
+      "order": 15,
       "mode": 0,
       "inputs": [
         {
@@ -699,7 +568,7 @@
         {
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 34
+          "link": 73
         },
         {
           "name": "prep",
@@ -710,7 +579,7 @@
           "name": "negative",
           "shape": 7,
           "type": "CONDITIONING",
-          "link": 36
+          "link": 74
         },
         {
           "name": "init_views",
@@ -723,6 +592,30 @@
           "shape": 7,
           "type": "MASK",
           "link": null
+        },
+        {
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": 78
+        },
+        {
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": 84
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": 82
         }
       ],
       "outputs": [
@@ -783,16 +676,16 @@
       "id": 26,
       "type": "UltraTexRotateRig",
       "pos": [
-        1539.9180075680822,
-        453.5709900509694
+        1518.8114845419575,
+        560.870678258262
       ],
       "size": [
         323.503515625,
         102
       ],
       "flags": {},
-      "order": 11,
-      "mode": 0,
+      "order": 14,
+      "mode": 4,
       "inputs": [
         {
           "name": "prep",
@@ -834,16 +727,16 @@
       "id": 27,
       "type": "UltraTexSampler",
       "pos": [
-        1999.7300596815319,
-        338.72763697433385
+        1964.3614380016563,
+        533.4829824502393
       ],
       "size": [
         307.080078125,
         418
       ],
       "flags": {},
-      "order": 14,
-      "mode": 0,
+      "order": 18,
+      "mode": 4,
       "inputs": [
         {
           "name": "model",
@@ -858,7 +751,7 @@
         {
           "name": "positive",
           "type": "CONDITIONING",
-          "link": 44
+          "link": 75
         },
         {
           "name": "prep",
@@ -869,7 +762,7 @@
           "name": "negative",
           "shape": 7,
           "type": "CONDITIONING",
-          "link": 45
+          "link": 76
         },
         {
           "name": "init_views",
@@ -882,6 +775,30 @@
           "shape": 7,
           "type": "MASK",
           "link": 66
+        },
+        {
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": 79
+        },
+        {
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": 85
+        },
+        {
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": 83
         }
       ],
       "outputs": [
@@ -941,16 +858,16 @@
       "id": 28,
       "type": "SaveImage",
       "pos": [
-        2408.453556815095,
-        357.09570384230096
+        2363.0235336129545,
+        535.7312521794428
       ],
       "size": [
         449.7818377044482,
         404.10384665559707
       ],
       "flags": {},
-      "order": 15,
-      "mode": 0,
+      "order": 19,
+      "mode": 4,
       "inputs": [
         {
           "name": "images",
@@ -980,16 +897,16 @@
       "id": 31,
       "type": "UltraTexRenderViews",
       "pos": [
-        1546.8718800496824,
-        636.8085141507421
+        1519.9969595792977,
+        792.178151720615
       ],
       "size": [
         347.2515625,
         190
       ],
       "flags": {},
-      "order": 13,
-      "mode": 0,
+      "order": 17,
+      "mode": 4,
       "inputs": [
         {
           "name": "prep",
@@ -1011,6 +928,14 @@
           "shape": 7,
           "type": "ULTRATEX_BAKE",
           "link": null
+        },
+        {
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": 81
         }
       ],
       "outputs": [
@@ -1059,7 +984,7 @@
         254
       ],
       "flags": {},
-      "order": 16,
+      "order": 20,
       "mode": 0,
       "inputs": [
         {
@@ -1095,6 +1020,14 @@
           "shape": 7,
           "type": "IMAGE",
           "link": null
+        },
+        {
+          "name": "texture_size",
+          "type": "INT",
+          "widget": {
+            "name": "texture_size"
+          },
+          "link": 80
         }
       ],
       "outputs": [
@@ -1139,17 +1072,296 @@
       },
       "widgets_values": [
         2048,
-        "DwarfSorcerer_10Views",
+        "DwarfSorcerer_1024_Flux2",
         4,
         0.5,
         6
       ],
       "widgets_values_named": {
         "texture_size": 2048,
-        "filename_prefix": "DwarfSorcerer_10Views",
+        "filename_prefix": "DwarfSorcerer_1024_Flux2",
         "view_weight_power": 4,
         "best_view_mix": 0.5,
         "edge_feather_px": 6
+      }
+    },
+    {
+      "id": 35,
+      "type": "Fast Groups Bypasser (rgthree)",
+      "pos": [
+        -152.2755731033592,
+        930.5389085929431
+      ],
+      "size": [
+        330.03326228928336,
+        106
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "OPT_CONNECTION",
+          "type": "*",
+          "links": null
+        }
+      ],
+      "properties": {
+        "matchColors": "",
+        "matchTitle": "",
+        "showNav": true,
+        "showAllGraphs": true,
+        "sort": "position",
+        "customSortAlphabet": "",
+        "toggleRestriction": "default"
+      }
+    },
+    {
+      "id": 36,
+      "type": "UltraTexTextEncode",
+      "pos": [
+        968.9149294786854,
+        81.74932710027416
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 86
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            73,
+            74,
+            75,
+            76
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ultratex",
+        "ver": "33f56f50b53ebeb5f5ba0dd1e2a106f628c85401",
+        "Node name for S&R": "UltraTexTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "text": ""
+      }
+    },
+    {
+      "id": 38,
+      "type": "PrimitiveInt",
+      "pos": [
+        -150.2550657739888,
+        368.7057990693445
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            78,
+            79,
+            81
+          ]
+        }
+      ],
+      "title": "Resolution",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [
+        1024,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "value": 1024,
+        "fixed": "fixed"
+      }
+    },
+    {
+      "id": 39,
+      "type": "PrimitiveInt",
+      "pos": [
+        -155.3262360491144,
+        503.34100487089466
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            80
+          ]
+        }
+      ],
+      "title": "Texture Size",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [
+        2048,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "value": 2048,
+        "fixed": "fixed"
+      }
+    },
+    {
+      "id": 40,
+      "type": "PrimitiveInt",
+      "pos": [
+        -145.87575115030697,
+        636.7297490531249
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            82,
+            83
+          ]
+        }
+      ],
+      "title": "Seed",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [
+        12345,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "value": 12345,
+        "fixed": "fixed"
+      }
+    },
+    {
+      "id": 41,
+      "type": "PrimitiveInt",
+      "pos": [
+        -141.11671675609318,
+        772.6236885742027
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            84,
+            85
+          ]
+        }
+      ],
+      "title": "Steps",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [
+        25,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "value": 25,
+        "fixed": "fixed"
+      }
+    },
+    {
+      "id": 42,
+      "type": "CLIPLoader",
+      "pos": [
+        417.22561765588864,
+        78.61372263649115
+      ],
+      "size": [
+        426.40183403948845,
+        110.17869268609934
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            86
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.38.0",
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "qwen_3_8b_fp8mixed.safetensors",
+        "flux2",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen_3_8b_fp8mixed.safetensors",
+        "type": "flux2",
+        "device": "default"
       }
     }
   ],
@@ -1169,22 +1381,6 @@
       8,
       0,
       "VAE"
-    ],
-    [
-      10,
-      9,
-      0,
-      10,
-      0,
-      "CLIP"
-    ],
-    [
-      12,
-      9,
-      0,
-      11,
-      0,
-      "CLIP"
     ],
     [
       20,
@@ -1227,28 +1423,12 @@
       "VAE"
     ],
     [
-      34,
-      10,
-      0,
-      25,
-      2,
-      "CONDITIONING"
-    ],
-    [
       35,
       2,
       0,
       25,
       3,
       "ULTRATEX_PREP"
-    ],
-    [
-      36,
-      11,
-      0,
-      25,
-      4,
-      "CONDITIONING"
     ],
     [
       38,
@@ -1289,22 +1469,6 @@
       27,
       3,
       "ULTRATEX_PREP"
-    ],
-    [
-      44,
-      10,
-      0,
-      27,
-      2,
-      "CONDITIONING"
-    ],
-    [
-      45,
-      11,
-      0,
-      27,
-      4,
-      "CONDITIONING"
     ],
     [
       47,
@@ -1393,16 +1557,145 @@
       15,
       0,
       "FILE_3D_GLB"
+    ],
+    [
+      73,
+      36,
+      0,
+      25,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      74,
+      36,
+      0,
+      25,
+      4,
+      "CONDITIONING"
+    ],
+    [
+      75,
+      36,
+      0,
+      27,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      76,
+      36,
+      0,
+      27,
+      4,
+      "CONDITIONING"
+    ],
+    [
+      78,
+      38,
+      0,
+      25,
+      7,
+      "INT"
+    ],
+    [
+      79,
+      38,
+      0,
+      27,
+      7,
+      "INT"
+    ],
+    [
+      80,
+      39,
+      0,
+      32,
+      6,
+      "INT"
+    ],
+    [
+      81,
+      38,
+      0,
+      31,
+      4,
+      "INT"
+    ],
+    [
+      82,
+      40,
+      0,
+      25,
+      9,
+      "INT"
+    ],
+    [
+      83,
+      40,
+      0,
+      27,
+      9,
+      "INT"
+    ],
+    [
+      84,
+      41,
+      0,
+      25,
+      8,
+      "INT"
+    ],
+    [
+      85,
+      41,
+      0,
+      27,
+      8,
+      "INT"
+    ],
+    [
+      86,
+      42,
+      0,
+      36,
+      0,
+      "CLIP"
     ]
   ],
-  "groups": [],
+  "groups": [
+    {
+      "id": 1,
+      "title": "10 Views",
+      "bounding": [
+        1508.8114845419575,
+        463.4829824502397,
+        1313.9938867754465,
+        528.695169270375
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "Configuration",
+      "bounding": [
+        -204.65989488078776,
+        -400.95304849628593,
+        456.22172470598065,
+        1462.6918791221922
+      ],
+      "color": "#3f789e",
+      "flags": {}
+    }
+  ],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.5209868481924399,
+      "scale": 0.630394086312854,
       "offset": [
-        -417.7236752431087,
-        744.7162602323018
+        -475.35523954001565,
+        541.442687290381
       ]
     },
     "frontendVersion": "1.53.10",

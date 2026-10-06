@@ -101,6 +101,32 @@ class UltraTexLoraLoader:
         return (new_model,)
 
 
+# =========================================================================== text
+class UltraTexTextEncode:
+    """CLIP Text Encode with UltraTex's text settings (empty prompt; FLUX.1 T5 padded to 512 tokens like UltraTex)."""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "clip": ("CLIP",),
+                "text": ("STRING", {"default": "", "multiline": True, "tooltip": "Leave empty: UltraTex is image-guided and was trained with empty prompts."}),
+            }
+        }
+
+    RETURN_TYPES = ("CONDITIONING",)
+    FUNCTION = "encode"
+    CATEGORY = CATEGORY
+    DESCRIPTION = "ComfyUI pads FLUX.1's T5 context to 256 tokens; UltraTex's FLUX.1 LoRA was trained with 512. This node encodes with 512 (no effect for FLUX.2, whose 512-token context already matches)."
+
+    def encode(self, clip, text):
+        import nodes as comfy_nodes
+
+        clip = clip.clone()
+        clip.set_tokenizer_option("t5xxl_min_length", 512)
+        return comfy_nodes.CLIPTextEncode().encode(clip, text)
+
+
 # =========================================================================== VAE decoder
 class UltraTexForegroundDecoder:
     """Swaps the VAE decoder for UltraTex's Foreground-Aware decoder (flux1/decoder.pt or flux2/decoder.pt)."""
@@ -209,7 +235,7 @@ class UltraTexSampler:
                 "resolution": ("INT", {"default": 2048, "min": 256, "max": 4096, "step": 16, "tooltip": "Per-view resolution. UltraTex is trained at 2048."}),
                 "steps": ("INT", {"default": 25, "min": 1, "max": 200}),
                 "seed": ("INT", {"default": 42, "min": 0, "max": 0xFFFFFFFFFFFFFFFF}),
-                "guidance": ("FLOAT", {"default": 4.0, "min": 0.0, "max": 30.0, "step": 0.1, "tooltip": "FLUX.1: distilled guidance. FLUX.2: text CFG scale, only used when a negative is connected."}),
+                "guidance": ("FLOAT", {"default": 2.0, "min": 0.0, "max": 30.0, "step": 0.1, "tooltip": "FLUX.1: distilled guidance. 2 = balanced; 1 = colours closest to the reference but softer details; 4 = UltraTex's FLUX.1 default, crisper but more saturated. FLUX.2: text CFG scale, only used when a different negative prompt is connected (UltraTex uses 4)."}),
                 "drop_background_tokens": ("BOOLEAN", {"default": True, "tooltip": "UltraTex Background Token Dropping (huge speed-up, as trained)."}),
             },
             "optional": {
@@ -492,6 +518,7 @@ NODE_CLASS_MAPPINGS = {
     "UltraTexLoadMesh": UltraTexLoadMesh,
     "UltraTexRotateRig": UltraTexRotateRig,
     "UltraTexRenderViews": UltraTexRenderViews,
+    "UltraTexTextEncode": UltraTexTextEncode,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "UltraTexLoraLoader": "UltraTex Load LoRA",
@@ -502,4 +529,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "UltraTexLoadMesh": "UltraText Load Mesh",
     "UltraTexRotateRig": "UltraTex Rotate Rig (second pass)",
     "UltraTexRenderViews": "UltraTex Render Views (second pass)",
+    "UltraTexTextEncode": "UltraTex Text Encode",
 }

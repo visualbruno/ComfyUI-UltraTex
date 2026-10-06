@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 
 import numpy as np
 import torch
@@ -22,6 +23,8 @@ from PIL import Image
 from .render import GRID_ORDER
 
 log = logging.getLogger("UltraTex")
+
+FLUX1_TRAIN_RES = 2048  # resolution the UltraTex FLUX.1 LoRA was trained at (train_flux1.py)
 
 
 # --------------------------------------------------------------------------- conditions
@@ -129,15 +132,16 @@ class Backbone:
         ids[..., 2] = torch.arange(w)[None, :] + w_off
         return ids.reshape(1, h * w, self.axes)
 
-    def reference_ids(self, target_hw, ref_hws):
-        """FLUX.2: t-axis planes 10, 20 ... ; FLUX.1 (UNO pe='d'): diagonal h/w offsets."""
+    def reference_ids(self, target_hw, ref_hws, offset_scale: float = 1.0):
+        """FLUX.2: t-axis planes 10, 20 ... ; FLUX.1 (UNO pe='d'): diagonal h/w offsets, scaled by
+        `offset_scale` (token spacing itself is unchanged)."""
         out = []
         sh, sw = target_hw
         for i, (h, w) in enumerate(ref_hws):
             if self.family == "flux2":
                 out.append(self.ids(h, w, t=10.0 * (i + 1)))
             else:
-                out.append(self.ids(h, w, h_off=sh, w_off=sw))
+                out.append(self.ids(h, w, h_off=sh * offset_scale, w_off=sw * offset_scale))
                 sh, sw = sh + h, sw + w
         return out
 
@@ -212,7 +216,10 @@ def sample(
         raise ValueError(f"token grid {(th, tw)} / {(rh, rw)} does not match masks {cond['mask_target'].shape}")
 
     target_ids = bb.ids(th, tw)
-    ref_ids = bb.reference_ids((th, tw), [(th, tw), (rh, rw)])
+    # FLUX.1 places references at h/w offsets equal to the grid sizes, which the LoRA learned at 2048:
+    # keep those 2048 offsets at any resolution (at 1024 the native offsets made the model lose the
+    # target <-> normal correspondence, e.g. a face painted on the back view). FLUX.2 uses t-planes.
+    ref_ids = bb.reference_ids((th, tw), [(th, tw), (rh, rw)], offset_scale=FLUX1_TRAIN_RES / R)
     ref_tokens = [bb.pack(normal_lat), bb.pack(ref_lat)]
     bg_tokens = bb.pack(bg_lat)
 
@@ -305,6 +312,8 @@ def sample(
     txt_ids_d = txt_ids.to(device)
     y_d = y.to(device, dtype).expand(batch, -1) if (family == "flux1" and y is not None) else None
     guid_d = torch.full((batch,), guidance, device=device, dtype=dtype) if family == "flux1" else None
+    if family == "flux1" and ctx.shape[1] != 512:
+        log.warning("UltraTex: FLUX.1 T5 context has %d tokens (UltraTex uses 512); use 'UltraTex Text Encode'", ctx.shape[1])
 
     keep_d = None
     if keep_w is not None:
@@ -329,6 +338,15 @@ def sample(
             )[:, :n_fg].float()
             if use_cfg:
                 pred = pred[0:1] + guidance * (pred[1:2] - pred[0:1])
+            if i == start and os.environ.get("ULTRATEX_DUMP"):  # debug: inputs + first prediction for A/B checks
+                torch.save({
+                    "family": family, "x": x.cpu(), "tgt_idx": tgt_idx, "target_ids": target_ids,
+                    "ref_tokens": ref_tokens, "ref_ids": ref_ids, "ref_idx": ref_idx,
+                    "masks": [cond["mask_target"], cond["mask_normals"], cond["mask_reference"]],
+                    "ctx": ctx.cpu(), "txt_ids": txt_ids.cpu(), "y": None if y is None else y.cpu(),
+                    "t": t_curr, "guidance": guidance, "pred": pred.cpu(),
+                }, os.environ["ULTRATEX_DUMP"])
+                log.info("UltraTex: dumped first-step inputs/prediction to %s", os.environ["ULTRATEX_DUMP"])
             x_new = x_fg + (t_prev - t_curr) * pred
             if keep_d is not None:  # RePaint: kept tokens follow the init content's own noising path
                 known = (1 - t_prev) * x0_d[:, tgt_idx_d] + t_prev * noise_d[:, tgt_idx_d]
