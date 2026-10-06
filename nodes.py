@@ -362,7 +362,7 @@ class UltraTexBake:
         log.info("UltraTex: saved %s", rel)
         albedo_t = _uint8_to_image(np.asarray(albedo))[None]
         model_3d = File3D(glb_file, file_format="glb") if File3D is not None else None
-        return {"ui": {"text": [rel]}, "result": (mesh, albedo_t, torch.from_numpy(preview), rel, model_3d, bake_state)}
+        return {"ui": {"text": [rel],"3d": [{"filename": name + ".glb", "subfolder": subfolder, "type": "output"}]}, "result": (mesh, albedo_t, torch.from_numpy(preview), rel, model_3d, bake_state)}
 
     @staticmethod
     def _views(images: torch.Tensor, prep):
