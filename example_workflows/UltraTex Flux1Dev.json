@@ -316,7 +316,7 @@
           "hasCustomUp": false,
           "state": {
             "position": {
-              "x": -0.029111016903248303,
+              "x": -0.029111016903248566,
               "y": 0.14345556144722255,
               "z": 2.003530820299434
             },
@@ -329,8 +329,8 @@
             "cameraType": "perspective",
             "quaternion": {
               "x": -0.03572738693355086,
-              "y": -0.0072597155664583775,
-              "z": -0.00025954321905999545,
+              "y": -0.0072597155664584434,
+              "z": -0.0002595432190599978,
               "w": 0.9993351704959211
             },
             "fov": 35,
@@ -360,26 +360,7 @@
           "backgroundColor": "#282828",
           "backgroundImage": "",
           "backgroundRenderMode": "tiled",
-          "models": [
-            {
-              "position": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-              },
-              "quaternion": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-                "w": 1
-              },
-              "scale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-              }
-            }
-          ]
+          "models": []
         },
         "Model Config": {
           "upDirection": "original",
@@ -681,7 +662,7 @@
       ],
       "size": [
         323.503515625,
-        102
+        126
       ],
       "flags": {},
       "order": 14,
@@ -716,11 +697,13 @@
       },
       "widgets_values": [
         45,
-        0
+        0,
+        "per view"
       ],
       "widgets_values_named": {
         "azimuth": 45,
-        "elevation": 0
+        "elevation": 0,
+        "elevation_mode": "per view"
       }
     },
     {
@@ -981,7 +964,7 @@
       ],
       "size": [
         335.267578125,
-        254
+        278
       ],
       "flags": {},
       "order": 20,
@@ -1075,14 +1058,16 @@
         "DwarfSorcerer_1024_Flux1",
         4,
         0.5,
-        6
+        6,
+        "no top/bottom"
       ],
       "widgets_values_named": {
         "texture_size": 2048,
         "filename_prefix": "DwarfSorcerer_1024_Flux1",
         "view_weight_power": 4,
         "best_view_mix": 0.5,
-        "edge_feather_px": 6
+        "edge_feather_px": 6,
+        "views_2_use": "no top/bottom"
       }
     },
     {
@@ -1696,8 +1681,8 @@
     "ds": {
       "scale": 0.630394086312854,
       "offset": [
-        -995.9277446723108,
-        582.1258850913453
+        -806.6281039960905,
+        424.55252717919035
       ]
     },
     "frontendVersion": "1.53.10",

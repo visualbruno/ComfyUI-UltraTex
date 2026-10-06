@@ -90,6 +90,39 @@ def rig_rotation(azimuth_deg: float, elevation_deg: float = 0.0) -> np.ndarray:
     return rx @ ry
 
 
+def _axis_angle(axis: np.ndarray, angle: float) -> np.ndarray:
+    axis = axis / np.linalg.norm(axis)
+    x, y, z = axis
+    c, s = np.cos(angle), np.sin(angle)
+    k = np.array([[0, -z, y], [z, 0, -x], [-y, x, 0]])
+    return np.eye(3) + s * k + (1 - c) * (k @ k)
+
+
+# direction from the object to canonical cameras 0..3 (front, left, back, right) in the glTF frame
+_SIDE_DIRS = np.array([[0, 0, 1], [-1, 0, 0], [0, 0, -1], [1, 0, 0]], dtype=np.float64)
+
+
+def per_view_rigs(azimuth_deg: float, elevation_deg: float) -> np.ndarray:
+    """(6, 3, 3) object rotations: each side camera sees the object turned by `azimuth_deg` AND from
+    `elevation_deg` above (every side view raised, no roll); top / bottom only get the azimuth.
+    Unlike a rigid rig tilt, the 6 views no longer share one object orientation (non-canonical layout)."""
+    base = rig_rotation(azimuth_deg, 0.0)
+    rigs = np.repeat(base[None], 6, axis=0)
+    up = np.array([0.0, 1.0, 0.0])
+    for v, d in enumerate(_SIDE_DIRS):
+        # tipping the object's top towards camera v by `elevation` == camera v raised by `elevation`
+        rigs[v] = _axis_angle(np.cross(up, d), np.radians(elevation_deg)) @ base
+    return rigs
+
+
+def rig_for_view(rig, view: int):
+    """A rig is None, one (3, 3) rotation for all views, or a (6, 3, 3) per-view stack."""
+    if rig is None:
+        return None
+    rig = np.asarray(rig)
+    return rig[view] if rig.ndim == 3 else rig
+
+
 def view_matrix(view, rig: np.ndarray | None = None) -> np.ndarray:
     """World (glTF frame) -> camera, for a canonical view index or a 3x4 camera-to-world pose.
 

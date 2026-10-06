@@ -442,8 +442,8 @@
       "id": 11,
       "type": "CLIPTextEncode",
       "pos": [
-        962.5584713912411,
-        271.6531044830591
+        1064.5574052919976,
+        294.2002444830589
       ],
       "size": [
         400,
@@ -493,7 +493,7 @@
       ],
       "size": [
         335.267578125,
-        254
+        278
       ],
       "flags": {},
       "order": 14,
@@ -579,14 +579,16 @@
         "UltraTex/DwarfWarriorPBR",
         4,
         0.5,
-        6
+        6,
+        "all"
       ],
       "widgets_values_named": {
         "texture_size": 2048,
         "filename_prefix": "UltraTex/DwarfWarriorPBR",
         "view_weight_power": 4,
         "best_view_mix": 0.5,
-        "edge_feather_px": 6
+        "edge_feather_px": 6,
+        "views_2_use": "all"
       }
     },
     {
@@ -1254,10 +1256,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6209213230591558,
+      "scale": 0.6209213230591559,
       "offset": [
-        -288.7364418596332,
-        605.1219113201313
+        -14.736839243056748,
+        642.3866847396256
       ]
     },
     "frontendVersion": "1.53.10",

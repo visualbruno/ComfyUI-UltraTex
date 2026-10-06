@@ -41,6 +41,15 @@ if "ultratex" in folder_paths.folder_names_and_paths:
 
 CATEGORY = "UltraTex"
 
+# view indices: 0 front, 1 left, 2 back, 3 right, 4 top, 5 bottom
+VIEWS_2_CHOICES = {
+    "all": None,
+    "front only": [0],
+    "back only": [2],
+    "front + back": [0, 2],
+    "no top/bottom": [0, 1, 2, 3],
+}
+
 
 def _image_to_uint8(image: torch.Tensor) -> np.ndarray:
     return np.clip(image.cpu().numpy() * 255 + 0.5, 0, 255).astype(np.uint8)
@@ -301,6 +310,7 @@ class UltraTexBake:
                 "prep_2": ("ULTRATEX_PREP", {"tooltip": "Second rig (UltraTex Rotate Rig) whose views are baked together with the first."}),
                 "albedo_views_2": ("IMAGE", {"tooltip": "Albedo views generated with prep_2."}),
                 "metallic_roughness_views_2": ("IMAGE", {"tooltip": "Metallic-roughness views generated with prep_2."}),
+                "views_2_use": (list(VIEWS_2_CHOICES), {"default": "all", "tooltip": "Which views of the second rig to bake (e.g. drop poor views). With elevation_mode 'rigid' and elevation != 0 only the front (> 0) or back (< 0) view is raised; the side views are rolled."}),
             },
         }
 
@@ -319,7 +329,9 @@ class UltraTexBake:
     OUTPUT_NODE = True
 
     def bake(self, prep, albedo_views, texture_size, filename_prefix, view_weight_power, best_view_mix, edge_feather_px,
-             metallic_roughness_views=None, prep_2=None, albedo_views_2=None, metallic_roughness_views_2=None):
+             metallic_roughness_views=None, prep_2=None, albedo_views_2=None, metallic_roughness_views_2=None,
+             views_2_use="all"):
+        use_2 = VIEWS_2_CHOICES.get(views_2_use)
         settings = bake_core.BakeSettings(power=view_weight_power, best_view_mix=best_view_mix, edge_px=edge_feather_px)
         if prep_2 is not None:
             if prep_2.vertices.shape != prep.vertices.shape or not np.array_equal(prep_2.uvs, prep.uvs):
@@ -328,12 +340,12 @@ class UltraTexBake:
                 raise ValueError("UltraTex Bake: prep_2 is connected but albedo_views_2 is not")
         albedo_sets = [self._views(albedo_views, prep)]
         if prep_2 is not None:
-            albedo_sets.append(self._views(albedo_views_2, prep_2))
+            albedo_sets.append((*self._views(albedo_views_2, prep_2), use_2))
         mr_sets = []
         if metallic_roughness_views is not None:
             mr_sets.append(self._views(metallic_roughness_views, prep))
         if prep_2 is not None and metallic_roughness_views_2 is not None:
-            mr_sets.append(self._views(metallic_roughness_views_2, prep_2))
+            mr_sets.append((*self._views(metallic_roughness_views_2, prep_2), use_2))
 
         baker = bake_core.Baker(prep, texture_size)
         try:
@@ -388,7 +400,8 @@ class UltraTexRotateRig:
             "required": {
                 "prep": ("ULTRATEX_PREP",),
                 "azimuth": ("FLOAT", {"default": 45.0, "min": -180.0, "max": 180.0, "step": 1.0, "tooltip": "Rig rotation around the vertical axis. 45 puts the side views at 45/135/225/315 degrees."}),
-                "elevation": ("FLOAT", {"default": 0.0, "min": -60.0, "max": 60.0, "step": 1.0, "tooltip": "Rig tilt (> 0: cameras look from above, < 0: from below, e.g. under arms)."}),
+                "elevation": ("FLOAT", {"default": 0.0, "min": -60.0, "max": 60.0, "step": 1.0, "tooltip": "Camera height above (> 0) or below (< 0) the object for the side views. See elevation_mode."}),
+                "elevation_mode": (["per view", "rigid"], {"default": "per view", "tooltip": "per view: each of the 4 side cameras is raised by `elevation` (all side views seen from above/below; non-canonical layout, kept consistent by the second pass's init views). rigid: the whole 6-camera rig is tilted - only the front camera rises, the back one drops and the left/right views are rolled sideways."}),
             }
         }
 
@@ -397,8 +410,15 @@ class UltraTexRotateRig:
     FUNCTION = "rotate"
     CATEGORY = CATEGORY
 
-    def rotate(self, prep, azimuth, elevation):
-        rotated = prep_core.rotate_rig(prep, azimuth, elevation)
+    def rotate(self, prep, azimuth, elevation, elevation_mode="per view"):
+        per_view = elevation_mode == "per view"
+        if elevation != 0 and not per_view:
+            log.warning(
+                "UltraTex Rotate Rig: rigid elevation %g tilts the whole rig - the front camera looks from %s, the "
+                "back camera from %s, and the side views are rolled by %g deg (use elevation_mode 'per view' to "
+                "raise every side camera).",
+                elevation, "above" if elevation > 0 else "below", "below" if elevation > 0 else "above", abs(elevation))
+        rotated = prep_core.rotate_rig(prep, azimuth, elevation, per_view=per_view)
         return (rotated, _uint8_to_image(_normal_preview(rotated)))
 
 

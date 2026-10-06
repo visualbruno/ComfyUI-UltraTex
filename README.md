@@ -87,6 +87,14 @@ UltraTex Prep ─ prep ──┬────────────────
 Do **not** connect Sampler 1's `views` / `masks` straight into Sampler 2: they are seen from the other
 rig (the sampler refuses misaligned `init_views`). Sampler 2 runs `denoise x steps` steps (0.6 x 25 ≈ 11).
 
+`elevation` on *UltraTex Rotate Rig* views the side cameras from above (> 0) or below (< 0):
+
+* `elevation_mode = per view` (default): each of the 4 side cameras is raised by `elevation`, upright, no
+  roll. This is a non-canonical camera layout, but the second pass starts from the re-projected first
+  pass, which keeps the views consistent (tested at +20°: all four side views clean).
+* `elevation_mode = rigid`: the whole 6-camera rig is tilted, so only the front camera rises; the back
+  camera looks from below and the left/right views are rolled sideways (the model renders those poorly).
+
 ### Metallic-roughness
 
 The same *UltraTex Sampler* predicts metallic-roughness when its model carries the **MR LoRA**

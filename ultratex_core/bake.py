@@ -18,7 +18,7 @@ from PIL import Image
 from scipy import ndimage
 from scipy.spatial import cKDTree
 
-from .render import GLRenderer, orbit_pose, project, view_matrix
+from .render import GLRenderer, orbit_pose, project, rig_for_view, view_matrix
 
 log = logging.getLogger("UltraTex")
 
@@ -86,6 +86,7 @@ class Baker:
         self.renderer.release()
 
     def _view_geometry(self, view: int, size: int, mask: np.ndarray, s: BakeSettings, rig: np.ndarray | None):
+        rig = rig_for_view(rig, view)
         key = (view, size, None if rig is None else rig.tobytes())
         if key not in self._view_cache:
             _, _, dep = self.renderer.render_view(view, size, rig)
@@ -111,7 +112,7 @@ class Baker:
         return u, v, w, quality
 
     def bake(self, view_sets, s: BakeSettings):
-        """view_sets: [(views (6, H, W, 3) float [0,1], masks (6, H, W) bool, rig or None), ...]
+        """view_sets: [(views (6, H, W, 3) float [0,1], masks (6, H, W) bool, rig or None[, view indices]), ...]
 
         Returns (texture (T, T, 3) float, confidence (T, T) float = best per-texel view quality)."""
         n = len(self.texel_pos)
@@ -120,8 +121,11 @@ class Baker:
         best_w = np.zeros(n)
         best_c = np.zeros((n, 3))
         best_q = np.zeros(n)
-        for views, masks, rig in view_sets:
+        for views, masks, rig, *rest in view_sets:
+            use = rest[0] if rest else None  # optional subset of the 6 views
             for view in range(6):
+                if use is not None and view not in use:
+                    continue
                 size = views[view].shape[0]
                 valid = _drop_white_rim(views[view], masks[view], s.white_rim_px)
                 u, v, w, q = self._view_geometry(view, size, valid, s, rig)
@@ -154,7 +158,7 @@ class Baker:
         th, tw = tex.shape[:2]
         views, covers, confs = [], [], []
         for view in range(6):
-            _, _, dep = self.renderer.render_view(view, size, rig)
+            _, _, dep = self.renderer.render_view(view, size, rig_for_view(rig, view))
             cover = dep[..., 3] > 0
             x = (dep[..., 1] * tw - 0.5).ravel()
             y = ((1 - dep[..., 2]) * th - 0.5).ravel()

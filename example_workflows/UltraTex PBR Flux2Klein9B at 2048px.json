@@ -493,7 +493,7 @@
       ],
       "size": [
         335.267578125,
-        254
+        278
       ],
       "flags": {},
       "order": 14,
@@ -579,14 +579,16 @@
         "UltraTex/DwarfWarriorPBR",
         4,
         0.5,
-        6
+        6,
+        "all"
       ],
       "widgets_values_named": {
         "texture_size": 4096,
         "filename_prefix": "UltraTex/DwarfWarriorPBR",
         "view_weight_power": 4,
         "best_view_mix": 0.5,
-        "edge_feather_px": 6
+        "edge_feather_px": 6,
+        "views_2_use": "all"
       }
     },
     {

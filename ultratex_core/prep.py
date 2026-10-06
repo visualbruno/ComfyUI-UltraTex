@@ -9,7 +9,7 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 from PIL import Image
 
-from .render import GLRenderer, encode_normal_world, normalize, rig_rotation, to_single_mesh
+from .render import GLRenderer, encode_normal_world, normalize, per_view_rigs, rig_for_view, rig_rotation, to_single_mesh
 
 log = logging.getLogger("UltraTex")
 
@@ -140,11 +140,12 @@ def render_conditions(vertices, normals, faces, size: int, rig: np.ndarray | Non
     out = np.zeros((6, size, size, 4), np.uint8)
     with GLRenderer(vertices, normals, faces) as renderer:
         for view in range(6):
-            _, nrm, _ = renderer.render_view(view, size, rig)
+            rig_v = rig_for_view(rig, view)
+            _, nrm, _ = renderer.render_view(view, size, rig_v)
             alpha = nrm[..., 3] > 0
             n = np.nan_to_num(nrm[..., :3])
-            if rig is not None:
-                n = n @ rig.T
+            if rig_v is not None:
+                n = n @ rig_v.T
             n = n / np.maximum(np.linalg.norm(n, axis=-1, keepdims=True), 1e-8)
             rgb = np.clip(encode_normal_world(n) * 255 + 0.5, 0, 255).astype(np.uint8)
             out[view, ..., :3] = np.where(alpha[..., None], rgb, 0)
@@ -152,11 +153,15 @@ def render_conditions(vertices, normals, faces, size: int, rig: np.ndarray | Non
     return out
 
 
-def rotate_rig(prep: UltraTexPrep, azimuth: float, elevation: float) -> UltraTexPrep:
-    """Same mesh / UVs / reference, seen by the canonical cameras with the object rotated (second pass)."""
-    rig = rig_rotation(azimuth, elevation)
+def rotate_rig(prep: UltraTexPrep, azimuth: float, elevation: float, per_view: bool = False) -> UltraTexPrep:
+    """Same mesh / UVs / reference, seen by the canonical cameras with the object rotated (second pass).
+
+    per_view=False: one rigid rotation (the 6 views stay a canonical rig; elevation only raises the front
+    camera). per_view=True: every side camera is raised by `elevation` (non-canonical layout)."""
+    rig = per_view_rigs(azimuth, elevation) if per_view else rig_rotation(azimuth, elevation)
     normal_rgba = render_conditions(prep.vertices, prep.normals, prep.faces, prep.render_size, rig)
-    return replace(prep, rig=rig, normal_rgba=normal_rgba, rig_label=f"az {azimuth:g} el {elevation:g}")
+    label = f"az {azimuth:g} el {elevation:g}" + (" per-view" if per_view else "")
+    return replace(prep, rig=rig, normal_rgba=normal_rgba, rig_label=label)
 
 
 def align_reference(rgba: np.ndarray, front_alpha: np.ndarray, size: int, mode: str) -> np.ndarray:
