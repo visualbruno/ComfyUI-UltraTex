@@ -1,8 +1,8 @@
 {
   "id": "ec128ec0-1103-4d82-86ba-136f1bae4753",
   "revision": 0,
-  "last_node_id": 27,
-  "last_link_id": 34,
+  "last_node_id": 28,
+  "last_link_id": 36,
   "nodes": [
     {
       "id": 2,
@@ -210,7 +210,7 @@
           "type": "MODEL",
           "links": [
             5,
-            30
+            35
           ]
         }
       ],
@@ -828,50 +828,6 @@
       }
     },
     {
-      "id": 23,
-      "type": "LoraLoaderModelOnly",
-      "pos": [
-        958.4346091553036,
-        -281.34201925482773
-      ],
-      "size": [
-        351.491806,
-        84.3620452908325
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "model",
-          "type": "MODEL",
-          "link": 30
-        }
-      ],
-      "outputs": [
-        {
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            29
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.38.0",
-        "Node name for S&R": "LoraLoaderModelOnly"
-      },
-      "widgets_values": [
-        "ultratex_flux2_mr.safetensors",
-        1
-      ],
-      "widgets_values_named": {
-        "lora_name": "ultratex_flux2_mr.safetensors",
-        "strength_model": 1
-      }
-    },
-    {
       "id": 24,
       "type": "UltraTexSampler",
       "pos": [
@@ -889,7 +845,7 @@
         {
           "name": "model",
           "type": "MODEL",
-          "link": 29
+          "link": 36
         },
         {
           "name": "vae",
@@ -1056,6 +1012,50 @@
       "widgets_values_named": {
         "filename_prefix": "UltraTex_Metallic"
       }
+    },
+    {
+      "id": 28,
+      "type": "UltraTexLoraLoader",
+      "pos": [
+        981.3256792430551,
+        -294.17953559076125
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 35
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            36
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ultratex",
+        "ver": "d57e561d2911583d655b1b4091751a04647f2536",
+        "Node name for S&R": "UltraTexLoraLoader"
+      },
+      "widgets_values": [
+        "ultratex_flux2_mr.safetensors",
+        1
+      ],
+      "widgets_values_named": {
+        "lora_name": "ultratex_flux2_mr.safetensors",
+        "strength": 1
+      }
     }
   ],
   "links": [
@@ -1212,22 +1212,6 @@
       "VAE"
     ],
     [
-      29,
-      23,
-      0,
-      24,
-      0,
-      "MODEL"
-    ],
-    [
-      30,
-      5,
-      0,
-      23,
-      0,
-      "MODEL"
-    ],
-    [
       31,
       24,
       0,
@@ -1250,6 +1234,22 @@
       27,
       0,
       "IMAGE"
+    ],
+    [
+      35,
+      5,
+      0,
+      28,
+      0,
+      "MODEL"
+    ],
+    [
+      36,
+      28,
+      0,
+      24,
+      0,
+      "MODEL"
     ]
   ],
   "groups": [],
@@ -1259,7 +1259,7 @@
       "scale": 0.6209213230591559,
       "offset": [
         -14.736839243056748,
-        642.3866847396256
+        641.3129786403824
       ]
     },
     "frontendVersion": "1.53.10",
