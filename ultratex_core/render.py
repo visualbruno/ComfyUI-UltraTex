@@ -262,7 +262,7 @@ class GLRenderer:
     def __exit__(self, *exc):
         self.release()
 
-    def _render(self, size: int, mvp: np.ndarray, mv: np.ndarray, uv_mode: int):
+    def _render(self, size: int, mvp: np.ndarray, mv: np.ndarray, uv_mode: int, read=(0, 1, 2, 3)):
         import moderngl
 
         ctx = self.ctx
@@ -281,12 +281,12 @@ class GLRenderer:
         self.prog["uv_mode"].value = uv_mode
         self.vao.render(moderngl.TRIANGLES)
         out = []
-        for att in atts:
-            out.append(np.frombuffer(att.read(), dtype="f4").reshape(size, size, 4)[::-1].copy())
+        for i, att in enumerate(atts):
+            out.append(np.frombuffer(att.read(), dtype="f4").reshape(size, size, 4)[::-1].copy() if i in read else None)
             att.release()
         depth.release()
         fbo.release()
-        self.last_face = out[3][..., 0]  # triangle index per pixel (valid where alpha > 0)
+        self.last_face = out[3][..., 0] if out[3] is not None else None  # triangle index per pixel (where alpha > 0)
         return out[:3]  # pos, nrm, (depth, u, v); alpha channel = coverage
 
     def render_view(self, view, size: int, rig: np.ndarray | None = None):
@@ -294,6 +294,11 @@ class GLRenderer:
         object first. Position / normal outputs stay in the unrotated object frame."""
         mv = view_matrix(view, rig)
         return self._render(size, perspective(FOV_Y) @ mv, mv, 0)
+
+    def render_depth(self, view, size: int, rig: np.ndarray | None = None) -> np.ndarray:
+        """Only the (depth, u, v, coverage) buffer of render_view (a quarter of the read-back)."""
+        mv = view_matrix(view, rig)
+        return self._render(size, perspective(FOV_Y) @ mv, mv, 0, read=(2,))[2]
 
     def render_uv(self, size: int):
         """Rasterise in UV space -> per-texel glTF position and normal (row 0 = v = 1)."""

@@ -322,6 +322,7 @@ class UltraTexBake:
                 "detail_sharpness": ("FLOAT", {"default": 32.0, "min": 1.0, "max": 128.0, "step": 1.0, "tooltip": "two_band: how strongly the detail band prefers the best view ((q / q_max)^n). Higher = sharper, but view disagreements can show as seams."}),
                 "exposure_match": ("BOOLEAN", {"default": True, "tooltip": "two_band: per-view colour gains (+-15%) estimated on overlaps, front view anchored, to remove brightness seams."}),
                 "hole_fill": (["mesh", "nearest"], {"default": "mesh", "tooltip": "Texels no view sees: mesh = smooth harmonic fill along the mesh surface (follows connectivity), nearest = average of the 4 nearest seen texels in 3D."}),
+                "views_2_weight": ("FLOAT", {"default": 0.6, "min": 0.1, "max": 1.0, "step": 0.05, "tooltip": "two_band: view-angle quality factor of the second-pass views. Below 1 a second-pass view paints a texel only where it sees it clearly better than the first pass (keeps the first pass crisp; a second pass at high denoise does not agree exactly with it). 1 = no preference."}),
             },
         }
 
@@ -343,7 +344,7 @@ class UltraTexBake:
 
     def bake(self, prep, albedo_views, texture_size, filename_prefix, view_weight_power, best_view_mix, edge_feather_px,
              metallic_roughness_views=None, prep_2=None, albedo_views_2=None, metallic_roughness_views_2=None,
-             views_2_use=None, fusion=None, detail_sharpness=None, exposure_match=None, hole_fill=None):
+             views_2_use=None, fusion=None, detail_sharpness=None, exposure_match=None, hole_fill=None, views_2_weight=None):
         prep, albedo_views = prep[0], albedo_views[0]
         texture_size, filename_prefix = texture_size[0], filename_prefix[0]
         view_weight_power, best_view_mix, edge_feather_px = view_weight_power[0], best_view_mix[0], edge_feather_px[0]
@@ -357,6 +358,7 @@ class UltraTexBake:
             detail_power=float(detail_sharpness[0]) if detail_sharpness else 32.0,
             exposure_match=bool(exposure_match[0]) if exposure_match else True,
             hole_fill=hole_fill[0] if hole_fill else "mesh",
+            extra_view_bias=float(views_2_weight[0]) if views_2_weight else 0.6,
         )
         for p in preps_2:
             if p.vertices.shape != prep.vertices.shape or not np.array_equal(p.uvs, prep.uvs):

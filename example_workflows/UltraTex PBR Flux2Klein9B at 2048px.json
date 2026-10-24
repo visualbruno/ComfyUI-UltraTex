@@ -495,7 +495,7 @@
       ],
       "size": [
         335.267578125,
-        374
+        398
       ],
       "flags": {},
       "order": 14,
@@ -586,7 +586,8 @@
         "two_band",
         32,
         true,
-        "mesh"
+        "mesh",
+        0.6
       ],
       "widgets_values_named": {
         "texture_size": 4096,
@@ -598,7 +599,8 @@
         "fusion": "two_band",
         "detail_sharpness": 32,
         "exposure_match": true,
-        "hole_fill": "mesh"
+        "hole_fill": "mesh",
+        "views_2_weight": 0.6
       }
     },
     {
@@ -715,26 +717,7 @@
           "backgroundColor": "#282828",
           "backgroundImage": "",
           "backgroundRenderMode": "tiled",
-          "models": [
-            {
-              "position": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-              },
-              "quaternion": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-                "w": 1
-              },
-              "scale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-              }
-            }
-          ]
+          "models": []
         },
         "Model Config": {
           "upDirection": "original",
@@ -1288,8 +1271,8 @@
     "ds": {
       "scale": 0.8264462809917354,
       "offset": [
-        -1525.874957104032,
-        358.9124038708009
+        -987.8282288935825,
+        588.0058972179687
       ]
     },
     "frontendVersion": "1.57.1",

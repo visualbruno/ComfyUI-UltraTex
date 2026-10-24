@@ -52,7 +52,12 @@ inputs, cosine 0.9995):
 * **Detail band** comes almost only from the view that sees a texel most head-on (`detail_sharpness`,
   default 32; higher = sharper, but view switches can show), so fine detail is not averaged away. This is
   what keeps the extra detail when you **upscale the sampler's views before the bake** (any size works;
-  edge feather, blur and depth tolerance scale with the view resolution).
+  edge feather, blur and depth tolerance scale with the view resolution). Views are sampled bicubically.
+* `views_2_weight` (default 0.6): second-pass views compete with their view-angle quality scaled by this
+  factor, so they paint only what the first pass sees poorly. A second pass (especially at high denoise)
+  never matches the first pass exactly, and mixing the two softened the first pass' detail. On the dwarf
+  test (10 views), the front detail kept rose from 0.64 to 0.75 of what a front-only bake reaches (0.84).
+  1 = no preference.
 * `exposure_match`: per-view colour gains estimated on the overlaps (robust, front view anchored, at most
   ±15%). The model often renders some views brighter (on the dwarf test, the left view is ~25% and the top
   ~33% brighter than the front in linear light).
@@ -61,8 +66,10 @@ inputs, cosine 0.9995):
   a smooth harmonic interpolation over the mesh surface, instead of copying the nearest seen texel
   (`nearest`).
 
-`fusion = legacy` is the previous bake (one weighted blend). Dwarf test, 4K texture: two-band 8.7 s vs
-legacy 13.2 s (6 views), 12.1 s vs 18.4 s (12 views).
+`fusion = legacy` is the previous bake (one weighted blend). The per-view work of `two_band` (background
+fill, low band, visibility, sampling) runs on the GPU (CPU fallback when the GPU is out of memory). Dwarf
+test, 10 views upscaled to 2048 px, 4K texture: two-band ~12 s, legacy ~135 s; 10 views at 4096 px used to
+take ~3.5 min.
 
 Near-white pixels in a thin band just inside each view's silhouette are ignored (the model sometimes
 draws the outline a few pixels inside the true one and leaves the gap white, which showed up as white

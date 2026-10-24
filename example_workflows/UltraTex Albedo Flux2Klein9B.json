@@ -360,26 +360,7 @@
           "backgroundColor": "#282828",
           "backgroundImage": "",
           "backgroundRenderMode": "tiled",
-          "models": [
-            {
-              "position": {
-                "x": 0,
-                "y": 0,
-                "z": 0
-              },
-              "quaternion": {
-                "x": 0,
-                "y": 0,
-                "z": 0,
-                "w": 1
-              },
-              "scale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
-              }
-            }
-          ]
+          "models": []
         },
         "Model Config": {
           "upDirection": "original",
@@ -841,7 +822,7 @@
         "ultratex_sparse",
         0.4,
         8192,
-        0.6
+        1
       ],
       "widgets_values_named": {
         "resolution": 1024,
@@ -854,7 +835,7 @@
         "attention": "ultratex_sparse",
         "sparse_topk": 0.4,
         "token_chunk": 8192,
-        "denoise": 0.6
+        "denoise": 1
       }
     },
     {
@@ -984,7 +965,7 @@
       ],
       "size": [
         335.267578125,
-        374
+        398
       ],
       "flags": {},
       "order": 20,
@@ -1083,7 +1064,8 @@
         "two_band",
         32,
         true,
-        "mesh"
+        "mesh",
+        0.6
       ],
       "widgets_values_named": {
         "texture_size": 2048,
@@ -1095,7 +1077,8 @@
         "fusion": "two_band",
         "detail_sharpness": 32,
         "exposure_match": true,
-        "hole_fill": "mesh"
+        "hole_fill": "mesh",
+        "views_2_weight": 0.6
       }
     },
     {
@@ -1705,10 +1688,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 1.116781577942506,
+      "scale": 0.6934334949441519,
       "offset": [
-        -1879.5382012968525,
-        392.54922113192856
+        306.39565277876255,
+        519.472754319932
       ]
     },
     "frontendVersion": "1.57.1",

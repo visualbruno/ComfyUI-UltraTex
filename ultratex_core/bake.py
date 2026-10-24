@@ -9,7 +9,10 @@ fusion = "two_band" (default)
   * detail band: weights (q / q_max)^detail_power            -> detail from (nearly) the best view only,
     with a continuous hand-over instead of an argmax switch  -> no ghosting, no hard seam lines
   * per-view colour gains (robust log-domain least squares on overlaps, +-15 %, front view anchored)
+  * second-pass views compete with a reduced quality (extra_view_bias): they paint a texel only where they
+    see it clearly better than the first pass
   * fusion in linear light for colour; metallic-roughness is fused as plain data
+  * per-view work (background fill, low band, visibility, bicubic sampling) runs in torch on the GPU
   * texels seen by no view (and, partially, weakly seen ones) are filled by a harmonic interpolation
     over the welded mesh surface (follows connectivity, continues across UV seams)
 fusion = "legacy"
@@ -50,6 +53,9 @@ class BakeSettings:
     exposure_match: bool = True
     hole_fill: str = "mesh"  # "mesh" (harmonic over the surface) or "nearest" (4 nearest seen texels)
     max_gain: float = 0.15
+    sampler: str = "bicubic"  # two_band detail-band lookup: "bicubic" or "bilinear"
+    extra_view_bias: float = 0.6  # quality factor of second-pass views: they win a texel only when clearly better
+    side_view_bias: float = 1.0  # same for the first pass' non-front views (< 1: the front view, aligned with the reference, wins near-ties)
 
 
 def bilinear(img: np.ndarray, x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -64,11 +70,6 @@ def bilinear(img: np.ndarray, x: np.ndarray, y: np.ndarray) -> np.ndarray:
         + img[y0 + 1, x0] * (1 - fx) * fy
         + img[y0 + 1, x0 + 1] * fx * fy
     )
-
-
-def srgb_to_linear(c: np.ndarray) -> np.ndarray:
-    c = np.clip(c, 0.0, 1.0)
-    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
 
 
 def linear_to_srgb(c: np.ndarray) -> np.ndarray:
@@ -101,6 +102,83 @@ def _extend_into_background(view: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return view[iy, ix]
 
 
+# ---------------------------------------------------------------------- torch (GPU) helpers, two_band path
+def _torch_device():
+    import torch
+
+    try:
+        import comfy.model_management as mm
+
+        return mm.get_torch_device()
+    except Exception:
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def _t_srgb_to_linear(c):
+    import torch
+
+    c = c.clamp(0.0, 1.0)
+    return torch.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+
+
+def _t_max_filter(x, r: int):
+    """Square max filter of radius r on a (H, W) float map (separable)."""
+    import torch.nn.functional as F
+
+    k = 2 * r + 1
+    x = F.max_pool2d(x[None, None], (1, k), 1, (0, r))
+    return F.max_pool2d(x, (k, 1), 1, (r, 0))[0, 0]
+
+
+def _t_edge_distance(edges, radius: float):
+    """min(distance to the nearest edge pixel, radius): alternating 8- / 4-neighbour dilations (octagonal
+    metric, within ~8 % of Euclidean). Only distances up to the feather radius are needed."""
+    import torch
+    import torch.nn.functional as F
+
+    reached = edges.float()[None, None]
+    dist = torch.zeros_like(reached)
+    for i in range(int(np.ceil(radius))):
+        dist += 1 - reached
+        if i % 2 == 0:
+            reached = F.max_pool2d(reached, 3, 1, 1)
+        else:
+            reached = torch.maximum(F.max_pool2d(reached, (1, 3), 1, (0, 1)), F.max_pool2d(reached, (3, 1), 1, (1, 0)))
+    return dist[0, 0]
+
+
+def _t_fill_background(img, valid):
+    """(1, C, H, W) image with ~valid pixels filled from nearby valid ones (pull-push pyramid); valid
+    pixels are unchanged. Same purpose as _extend_into_background, without a full-size distance transform."""
+    import torch
+    import torch.nn.functional as F
+
+    c, w = img * valid, valid.float()
+    pyramid = []
+    while min(c.shape[-2:]) > 1:
+        pyramid.append((c, w))
+        c, w = F.avg_pool2d(c, 2, ceil_mode=True), F.avg_pool2d(w, 2, ceil_mode=True)
+    fill = c / w.clamp_min(1e-8)
+    for c, w in reversed(pyramid):
+        up = F.interpolate(fill, size=c.shape[-2:], mode="bilinear", align_corners=False)
+        fill = torch.where(w > 0, c / w.clamp_min(1e-8), up)
+    return fill
+
+
+def _t_gaussian(x, sigma: float):
+    """Separable Gaussian blur of a (1, C, H, W) tensor, edges replicated."""
+    import torch
+    import torch.nn.functional as F
+
+    r = max(1, int(3 * sigma + 0.5))
+    t = torch.arange(-r, r + 1, device=x.device, dtype=x.dtype)
+    k = torch.exp(-0.5 * (t / sigma) ** 2)
+    k = k / k.sum()
+    ch = x.shape[1]
+    x = F.conv2d(F.pad(x, (r, r, 0, 0), mode="replicate"), k.view(1, 1, 1, -1).expand(ch, 1, 1, -1), groups=ch)
+    return F.conv2d(F.pad(x, (0, 0, r, r), mode="replicate"), k.view(1, 1, -1, 1).expand(ch, 1, -1, 1), groups=ch)
+
+
 class Baker:
     def __init__(self, prep, tex_size: int):
         self.prep = prep
@@ -115,6 +193,7 @@ class Baker:
         self.texel_face = np.clip(np.rint(face[self.cover]).astype(np.int64), 0, len(prep.faces) - 1)
         self._view_cache = {}
         self._surface = None
+        self._texels_t = None
         log.info("UltraTex bake: UV coverage %.3f of %d^2 texels", self.cover.mean(), tex_size)
 
     def release(self):
@@ -122,17 +201,15 @@ class Baker:
 
     # ------------------------------------------------------------------ geometry per view
     def _view_geometry(self, view: int, size: int, mask: np.ndarray, s: BakeSettings, rig: np.ndarray | None):
+        """legacy fusion: per-texel (u, v, weight, quality) for one view, fixed depth tolerance."""
         rig = rig_for_view(rig, view)
         key = (view, size, None if rig is None else rig.tobytes())
         if key not in self._view_cache:
             _, _, dep = self.renderer.render_view(view, size, rig)
             self._view_cache[key] = (dep[..., 0], dep[..., 3] > 0)
         depth, cover = self._view_cache[key]
-        legacy = s.fusion == "legacy"
-        scale = 1.0 if legacy else size / 1024.0
         gy, gx = np.gradient(np.where(cover, depth, depth[cover].max() + 1.0))
-        # depth jumps per pixel shrink with resolution: compare against a per-1024-px threshold
-        edges = (~cover) | (np.hypot(gx, gy) * scale > s.edge_jump) | (~mask)
+        edges = (~cover) | (np.hypot(gx, gy) > s.edge_jump) | (~mask)
         edge_dist = ndimage.distance_transform_edt(~edges)
 
         u, v, d = project(self.texel_pos, view, size, rig)
@@ -143,25 +220,94 @@ class Baker:
         to_cam = cam[None] - self.texel_pos
         to_cam /= np.linalg.norm(to_cam, axis=1, keepdims=True)
         cos = np.einsum("ij,ij->i", self.texel_nrm, to_cam)
-        if legacy:
-            tol = s.depth_eps
-        else:  # one pixel's world size at this depth, stretched at grazing angles
-            pix = d / (FOCAL_OVER_SIZE * size)
-            tol = 0.0015 + 2.0 * pix / np.maximum(np.abs(cos), 0.2)
-        visible = inside & cover[vi, ui] & (np.abs(d - depth[vi, ui]) < tol)
-        ramp = np.clip(edge_dist[vi, ui] / (s.edge_px * scale), 0.0, 1.0)
+        visible = inside & cover[vi, ui] & (np.abs(d - depth[vi, ui]) < s.depth_eps)
+        ramp = np.clip(edge_dist[vi, ui] / s.edge_px, 0.0, 1.0)
         ok = visible & (cos > s.min_cos)
         w = np.where(ok, np.clip(cos, 0, 1) ** s.power * ramp, 0.0)
         quality = np.where(ok, np.clip(cos, 0, 1) * ramp, 0.0)  # how head-on (and away from edges)
         return u, v, w, quality
 
+    def _view_geometry_t(self, view: int, size: int, valid, s: BakeSettings, rig: np.ndarray | None, dev):
+        """two_band, on `dev`: (u, v, quality) per texel, same model as _view_geometry with view-size scaling."""
+        import torch
+
+        rig = rig_for_view(rig, view)
+        key = (view, size, None if rig is None else rig.tobytes())
+        if key not in self._view_cache:
+            dep = self.renderer.render_depth(view, size, rig)
+            self._view_cache[key] = (np.ascontiguousarray(dep[..., 0]), dep[..., 3] > 0)
+        depth, cover = (torch.from_numpy(a).to(dev) for a in self._view_cache[key])
+        if self._texels_t is None or self._texels_t[0] != dev:
+            self._texels_t = (dev, torch.from_numpy(self.texel_pos).float().to(dev), torch.from_numpy(self.texel_nrm).float().to(dev))
+        _, pos, nrm = self._texels_t
+        scale = size / 1024.0
+        gy, gx = torch.gradient(torch.where(cover, depth, depth[cover].max() + 1.0))
+        edges = ~cover | (torch.hypot(gx, gy) * scale > s.edge_jump) | ~valid
+        radius = s.edge_px * scale
+        edge_dist = _t_edge_distance(edges, radius)
+        del gx, gy, edges
+
+        mv = view_matrix(view, rig)
+        p = pos @ torch.from_numpy(mv[:3, :3].T).float().to(dev) + torch.from_numpy(mv[:3, 3]).float().to(dev)
+        d = -p[:, 2]
+        f = FOCAL_OVER_SIZE * size
+        u = size / 2 + f * p[:, 0] / d
+        v = size / 2 - f * p[:, 1] / d
+        del p
+        ui = u.floor().long().clamp(0, size - 1)
+        vi = v.floor().long().clamp(0, size - 1)
+        inside = (u >= 0) & (u < size) & (v >= 0) & (v < size)
+        cam = torch.from_numpy(np.linalg.inv(mv)[:3, 3]).float().to(dev)
+        to_cam = cam[None] - pos
+        cos = (nrm * to_cam).sum(1) / to_cam.norm(dim=1).clamp_min(1e-8)
+        del to_cam
+        tol = 0.0015 + 2.0 * (d / f) / cos.abs().clamp_min(0.2)  # one pixel's world size, stretched at grazing angles
+        flat = vi * size + ui
+        visible = inside & cover.reshape(-1)[flat] & ((d - depth.reshape(-1)[flat]).abs() < tol)
+        ramp = (edge_dist.reshape(-1)[flat] / radius).clamp(0.0, 1.0)
+        ok = visible & (cos > s.min_cos)
+        quality = torch.where(ok, cos.clamp(0.0, 1.0) * ramp, torch.zeros_like(cos))
+        return u, v, quality
+
+    def _sample_view(self, img: np.ndarray, mask: np.ndarray, rig, view: int, s: BakeSettings, data: bool, dev):
+        """two_band: one view's observations -> (texel indices, quality, full sample, low-band sample), numpy."""
+        import torch
+        import torch.nn.functional as F
+
+        size = img.shape[0]
+        im = torch.from_numpy(np.ascontiguousarray(img, dtype=np.float32)).to(dev)
+        valid = torch.from_numpy(np.ascontiguousarray(mask)).to(dev)
+        rim_px = 0.0 if data else s.white_rim_px * size / 1024.0
+        if rim_px > 0:  # near-white pixels close inside the silhouette (see _drop_white_rim)
+            near_edge = _t_max_filter((~valid).float(), int(round(rim_px))) > 0
+            valid = valid & ~(near_edge & (im > 0.9).all(-1))
+            del near_edge
+        u, v, q = self._view_geometry_t(view, size, valid, s, rig, dev)
+        idx = torch.nonzero(q > 0).squeeze(1)
+        if idx.numel() == 0:
+            return None
+        x = im.permute(2, 0, 1)[None]
+        del im
+        if not data:
+            x = _t_srgb_to_linear(x)
+        x = _t_fill_background(x, valid[None, None])
+        factor = max(1, size // 1024)  # the low band is built at ~1024 px, then blurred
+        low = F.interpolate(x, size=(size // factor, size // factor), mode="area") if factor > 1 else x
+        low = _t_gaussian(low, s.low_sigma_px * size / 1024.0 / factor)
+        grid = torch.stack((u[idx] / size * 2 - 1, v[idx] / size * 2 - 1), -1).view(1, 1, -1, 2)
+        full = F.grid_sample(x, grid, mode=s.sampler, padding_mode="border", align_corners=False)[0, :, 0].T.clamp(0.0, 1.0)
+        low = F.grid_sample(low, grid, mode="bilinear", padding_mode="border", align_corners=False)[0, :, 0].T
+        out = (idx.cpu().numpy(), q[idx].cpu().numpy(), full.cpu().numpy(), low.cpu().numpy())
+        del x, low, full, grid, u, v, q, idx, valid
+        return out
+
     @staticmethod
     def _iter_views(view_sets):
-        for views, masks, rig, *rest in view_sets:
+        for k, (views, masks, rig, *rest) in enumerate(view_sets):
             use = rest[0] if rest else None  # optional subset of the 6 views
             for view in range(6):
                 if use is None or view in use:
-                    yield views[view], masks[view], rig, view
+                    yield views[view], masks[view], rig, view, k
 
     # ------------------------------------------------------------------ public
     def bake(self, view_sets, s: BakeSettings, data: bool = False):
@@ -188,7 +334,7 @@ class Baker:
         best_w = np.zeros(n)
         best_c = np.zeros((n, 3))
         best_q = np.zeros(n)
-        for img, mask, rig, view in self._iter_views(view_sets):
+        for img, mask, rig, view, _ in self._iter_views(view_sets):
             size = img.shape[0]
             valid = _drop_white_rim(img, mask, s.white_rim_px)
             u, v, w, q = self._view_geometry(view, size, valid, s, rig)
@@ -211,34 +357,44 @@ class Baker:
     # ------------------------------------------------------------------ two-band
     def _bake_two_band(self, view_sets, s: BakeSettings, data: bool):
         n = len(self.texel_pos)
-        samples = []  # per view: texel indices, q, full sample, low-band sample (float32)
-        for img, mask, rig, view in self._iter_views(view_sets):
-            size = img.shape[0]
-            valid = _drop_white_rim(img, mask, 0.0 if data else s.white_rim_px)
-            u, v, _, q = self._view_geometry(view, size, valid, s, rig)
-            idx = np.flatnonzero(q > 0)  # each texel at most once per view -> plain indexed updates below
-            if len(idx) == 0:
-                continue
-            ext = _extend_into_background(img.astype(np.float32), valid)
-            if not data:
-                ext = srgb_to_linear(ext).astype(np.float32)
-            sigma = s.low_sigma_px * size / 1024.0
-            low = ndimage.gaussian_filter(ext, sigma=(sigma, sigma, 0), mode="nearest")
-            uu, vv = u[idx] - 0.5, v[idx] - 0.5
-            samples.append((idx, q[idx].astype(np.float32), bilinear(ext, uu, vv).astype(np.float32),
-                            bilinear(low, uu, vv).astype(np.float32)))
-        qmax = np.zeros(n, np.float32)
-        for idx, q, _, _ in samples:
+        dev = _torch_device()
+        samples, biases = [], []  # per view: texel indices (each at most once), q, full sample, low-band sample
+        for img, mask, rig, view, k in self._iter_views(view_sets):
+            try:
+                out = self._sample_view(img, mask, rig, view, s, data, dev)
+            except Exception as e:  # out of GPU memory: finish on the CPU (same result, slower)
+                if dev.type != "cuda" or "out of memory" not in str(e).lower():
+                    raise
+                import torch
+
+                self._texels_t = None
+                torch.cuda.empty_cache()
+                dev = torch.device("cpu")
+                log.warning("UltraTex bake: GPU out of memory, sampling the views on the CPU")
+                out = self._sample_view(img, mask, rig, view, s, data, dev)
+            if out is not None:
+                samples.append(out)
+                biases.append(s.extra_view_bias if k else 1.0 if view == 0 else s.side_view_bias)
+        self._texels_t = None
+        if dev.type == "cuda":
+            import torch
+
+            torch.cuda.empty_cache()
+        qmax = np.zeros(n, np.float32)  # real best quality (trust / confidence)
+        qmax_w = np.zeros(n, np.float32)  # best biased quality (detail hand-over)
+        for (idx, q, _, _), b in zip(samples, biases):
             qmax[idx] = np.maximum(qmax[idx], q)
+            qmax_w[idx] = np.maximum(qmax_w[idx], q * b)
 
         gains = self._colour_gains(samples, n, s) if (s.exposure_match and not data and len(samples) > 1) else None
         low_acc = np.zeros((n, 3)); low_w = np.zeros(n)
         det_acc = np.zeros((n, 3)); det_w = np.zeros(n)
-        for k, (idx, q, full, low) in enumerate(samples):
+        for k, ((idx, q, full, low), b) in enumerate(zip(samples, biases)):
             if gains is not None:
                 full, low = full * gains[k], low * gains[k]
+            q = q * b
             wl = q.astype(np.float64) ** s.power
-            wd = (q / np.maximum(qmax[idx], 1e-6)).astype(np.float64) ** s.detail_power
+            wd = (q / np.maximum(qmax_w[idx], 1e-6)).astype(np.float64) ** s.detail_power
             low_w[idx] += wl
             det_w[idx] += wd
             low_acc[idx] += wl[:, None] * low
