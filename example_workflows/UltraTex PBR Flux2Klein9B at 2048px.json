@@ -164,27 +164,27 @@
       },
       "widgets_values": [
         2048,
-        25,
+        4,
         12345,
         "fixed",
         4,
         true,
         0,
         "ultratex_sparse",
-        0.2,
+        0.4,
         8192,
         1
       ],
       "widgets_values_named": {
         "resolution": 2048,
-        "steps": 25,
+        "steps": 4,
         "seed": 12345,
         "control_after_generate": "fixed",
         "guidance": 4,
         "drop_background_tokens": true,
         "memory_factor": 0,
         "attention": "ultratex_sparse",
-        "sparse_topk": 0.2,
+        "sparse_topk": 0.4,
         "token_chunk": 8192,
         "denoise": 1
       }
@@ -398,14 +398,16 @@
       "id": 10,
       "type": "CLIPTextEncode",
       "pos": [
-        949.8934185987342,
-        0.9000820248073801
+        960.6301221448766,
+        27.25388202480739
       ],
       "size": [
         400,
         200
       ],
-      "flags": {},
+      "flags": {
+        "collapsed": true
+      },
       "order": 8,
       "mode": 0,
       "inputs": [
@@ -442,8 +444,8 @@
       "id": 11,
       "type": "CLIPTextEncode",
       "pos": [
-        962.5584713912411,
-        271.6531044830591
+        968.414871391241,
+        112.55420802920159
       ],
       "size": [
         400,
@@ -488,12 +490,12 @@
       "id": 12,
       "type": "UltraTexBake",
       "pos": [
-        1996.2204027188027,
-        -17.238275269104115
+        1962.936594917289,
+        -104.20581526910406
       ],
       "size": [
         335.267578125,
-        278
+        374
       ],
       "flags": {},
       "order": 14,
@@ -580,7 +582,11 @@
         4,
         0.5,
         6,
-        "all"
+        "all",
+        "two_band",
+        32,
+        true,
+        "mesh"
       ],
       "widgets_values_named": {
         "texture_size": 4096,
@@ -588,19 +594,23 @@
         "view_weight_power": 4,
         "best_view_mix": 0.5,
         "edge_feather_px": 6,
-        "views_2_use": "all"
+        "views_2_use": "all",
+        "fusion": "two_band",
+        "detail_sharpness": 32,
+        "exposure_match": true,
+        "hole_fill": "mesh"
       }
     },
     {
       "id": 15,
       "type": "Preview3DAdvanced",
       "pos": [
-        2451.3322558218124,
-        4.448855441501307
+        2361.1952732534546,
+        -168.68604101235616
       ],
       "size": [
-        536.6494416503906,
-        684.8747208251951
+        663.8286274658203,
+        882.5806295410156
       ],
       "flags": {},
       "order": 16,
@@ -661,9 +671,9 @@
           "hasCustomUp": false,
           "state": {
             "position": {
-              "x": -0.442618911232288,
-              "y": 0.5610654210393151,
-              "z": 2.2314052152323804
+              "x": -0.3139567891458028,
+              "y": 0.26577391898048813,
+              "z": 3.5077333755940225
             },
             "target": {
               "x": 0,
@@ -673,10 +683,10 @@
             "zoom": 1,
             "cameraType": "perspective",
             "quaternion": {
-              "x": -0.12003263950586747,
-              "y": -0.09703855551230088,
-              "z": -0.011789913246463023,
-              "w": 0.9879456878507955
+              "x": -0.03761536869638843,
+              "y": -0.04458669930996323,
+              "z": -0.0016800083859142467,
+              "w": 0.9982956915935783
             },
             "fov": 35,
             "aspect": 1,
@@ -690,7 +700,7 @@
             }
           }
         },
-        "Last Time Model File": "preview3d_advanced_0af2a39f21e64c548f8ad87d7b89df65.glb [temp]",
+        "Last Time Model File": "preview3d_advanced_5d1c1071924b44859bcfcfd16bc86dcb.glb",
         "Light Config": {
           "intensity": 3,
           "hdri": {
@@ -705,7 +715,26 @@
           "backgroundColor": "#282828",
           "backgroundImage": "",
           "backgroundRenderMode": "tiled",
-          "models": []
+          "models": [
+            {
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "quaternion": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            }
+          ]
         },
         "Model Config": {
           "upDirection": "original",
@@ -730,7 +759,8 @@
               "z": 1
             }
           }
-        }
+        },
+        "Last Time Model Folder": "temp"
       },
       "widgets_values": [
         "",
@@ -819,11 +849,11 @@
         "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
-        "C:\\Git\\ComfyUI\\output\\3D\\DwarfWarrior_MV_Qwen\\DwarfWarrior_MV_Qwen_WhiteMesh_00001_.glb",
+        "C:\\Git\\ComfyUI\\output\\DwarfWarrior_Hy20.glb",
         false
       ],
       "widgets_values_named": {
-        "glb_path": "C:\\Git\\ComfyUI\\output\\3D\\DwarfWarrior_MV_Qwen\\DwarfWarrior_MV_Qwen_WhiteMesh_00001_.glb",
+        "glb_path": "C:\\Git\\ComfyUI\\output\\DwarfWarrior_Hy20.glb",
         "only_vertices_and_faces": false
       }
     },
@@ -910,27 +940,27 @@
       },
       "widgets_values": [
         1024,
-        25,
+        4,
         12345,
         "fixed",
         4,
         true,
         0,
         "ultratex_sparse",
-        0.2,
+        0.4,
         8192,
         1
       ],
       "widgets_values_named": {
         "resolution": 1024,
-        "steps": 25,
+        "steps": 4,
         "seed": 12345,
         "control_after_generate": "fixed",
         "guidance": 4,
         "drop_background_tokens": true,
         "memory_factor": 0,
         "attention": "ultratex_sparse",
-        "sparse_topk": 0.2,
+        "sparse_topk": 0.4,
         "token_chunk": 8192,
         "denoise": 1
       }
@@ -939,12 +969,12 @@
       "id": 26,
       "type": "SaveImage",
       "pos": [
-        2037.947698021131,
-        -773.2546343701498
+        1962.2074728449454,
+        -611.7709222111037
       ],
       "size": [
-        270,
-        58
+        362.88893565618537,
+        299.5109841209537
       ],
       "flags": {},
       "order": 13,
@@ -978,12 +1008,12 @@
       "id": 27,
       "type": "SaveImage",
       "pos": [
-        1983.6196831844607,
-        351.0960622752657
+        1990.892410457188,
+        344.42941410410094
       ],
       "size": [
         270,
-        58
+        270
       ],
       "flags": {},
       "order": 15,
@@ -1256,13 +1286,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.9090909090909095,
+      "scale": 0.8264462809917354,
       "offset": [
-        -566.8414426683022,
-        573.5032185644085
+        -1525.874957104032,
+        358.9124038708009
       ]
     },
-    "frontendVersion": "1.53.10",
+    "frontendVersion": "1.57.1",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

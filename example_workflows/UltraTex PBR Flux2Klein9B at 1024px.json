@@ -164,27 +164,27 @@
       },
       "widgets_values": [
         1024,
-        25,
+        4,
         12345,
         "fixed",
         4,
         true,
         0,
         "ultratex_sparse",
-        0.2,
+        0.4,
         8192,
         1
       ],
       "widgets_values_named": {
         "resolution": 1024,
-        "steps": 25,
+        "steps": 4,
         "seed": 12345,
         "control_after_generate": "fixed",
         "guidance": 4,
         "drop_background_tokens": true,
         "memory_factor": 0,
         "attention": "ultratex_sparse",
-        "sparse_topk": 0.2,
+        "sparse_topk": 0.4,
         "token_chunk": 8192,
         "denoise": 1
       }
@@ -398,14 +398,16 @@
       "id": 10,
       "type": "CLIPTextEncode",
       "pos": [
-        949.8934185987342,
-        0.9000820248073801
+        1037.290500017069,
+        18.61569202480738
       ],
       "size": [
         400,
         200
       ],
-      "flags": {},
+      "flags": {
+        "collapsed": true
+      },
       "order": 8,
       "mode": 0,
       "inputs": [
@@ -442,8 +444,8 @@
       "id": 11,
       "type": "CLIPTextEncode",
       "pos": [
-        1064.5574052919976,
-        294.2002444830589
+        1040.9366280011654,
+        88.69916848305886
       ],
       "size": [
         400,
@@ -488,12 +490,12 @@
       "id": 12,
       "type": "UltraTexBake",
       "pos": [
-        1996.2204027188027,
-        -17.238275269104115
+        1983.531506264945,
+        -106.06037172296138
       ],
       "size": [
         335.267578125,
-        278
+        374
       ],
       "flags": {},
       "order": 14,
@@ -576,27 +578,35 @@
       },
       "widgets_values": [
         2048,
-        "UltraTex/DwarfWarriorPBR",
+        "DwarfWarriorPBR",
         4,
         0.5,
         6,
-        "all"
+        "all",
+        "two_band",
+        32,
+        true,
+        "mesh"
       ],
       "widgets_values_named": {
         "texture_size": 2048,
-        "filename_prefix": "UltraTex/DwarfWarriorPBR",
+        "filename_prefix": "DwarfWarriorPBR",
         "view_weight_power": 4,
         "best_view_mix": 0.5,
         "edge_feather_px": 6,
-        "views_2_use": "all"
+        "views_2_use": "all",
+        "fusion": "two_band",
+        "detail_sharpness": 32,
+        "exposure_match": true,
+        "hole_fill": "mesh"
       }
     },
     {
       "id": 15,
       "type": "Preview3DAdvanced",
       "pos": [
-        2451.3322558218124,
-        4.448855441501307
+        2417.1698629140974,
+        -79.49289278542744
       ],
       "size": [
         536.6494416503906,
@@ -661,9 +671,9 @@
           "hasCustomUp": false,
           "state": {
             "position": {
-              "x": -0.442618911232288,
-              "y": 0.5610654210393151,
-              "z": 2.2314052152323804
+              "x": -0.2928522519304234,
+              "y": 0.9557977866415103,
+              "z": 4.219281589356651
             },
             "target": {
               "x": 0,
@@ -673,10 +683,10 @@
             "zoom": 1,
             "cameraType": "perspective",
             "quaternion": {
-              "x": -0.12003263950586747,
-              "y": -0.09703855551230088,
-              "z": -0.011789913246463023,
-              "w": 0.9879456878507955
+              "x": -0.11083181513325008,
+              "y": -0.03442786404076104,
+              "z": -0.0038416907197854123,
+              "w": 0.993235255286618
             },
             "fov": 35,
             "aspect": 1,
@@ -690,7 +700,7 @@
             }
           }
         },
-        "Last Time Model File": "preview3d_advanced_0af2a39f21e64c548f8ad87d7b89df65.glb [temp]",
+        "Last Time Model File": "preview3d_advanced_1b3aa67ef50c4e8cb8a502c66b84f5b4.glb",
         "Light Config": {
           "intensity": 3,
           "hdri": {
@@ -705,7 +715,26 @@
           "backgroundColor": "#282828",
           "backgroundImage": "",
           "backgroundRenderMode": "tiled",
-          "models": []
+          "models": [
+            {
+              "position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+              },
+              "quaternion": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+              },
+              "scale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+              }
+            }
+          ]
         },
         "Model Config": {
           "upDirection": "original",
@@ -730,7 +759,8 @@
               "z": 1
             }
           }
-        }
+        },
+        "Last Time Model Folder": "temp"
       },
       "widgets_values": [
         "",
@@ -747,7 +777,7 @@
       "id": 19,
       "type": "LoadImage",
       "pos": [
-        -28.17121042145784,
+        -43.20260432221465,
         -73.79002135400697
       ],
       "size": [
@@ -819,11 +849,11 @@
         "aux_id": "visualbruno/ComfyUI-UltraTex"
       },
       "widgets_values": [
-        "C:\\Git\\ComfyUI\\output\\3D\\DwarfWarrior_MV_Qwen\\DwarfWarrior_MV_Qwen_WhiteMesh_00001_.glb",
+        "C:\\Git\\ComfyUI\\output\\DwarfWarrior_Hy20.glb",
         false
       ],
       "widgets_values_named": {
-        "glb_path": "C:\\Git\\ComfyUI\\output\\3D\\DwarfWarrior_MV_Qwen\\DwarfWarrior_MV_Qwen_WhiteMesh_00001_.glb",
+        "glb_path": "C:\\Git\\ComfyUI\\output\\DwarfWarrior_Hy20.glb",
         "only_vertices_and_faces": false
       }
     },
@@ -910,27 +940,27 @@
       },
       "widgets_values": [
         1024,
-        25,
+        4,
         12345,
         "fixed",
         4,
         true,
         0,
         "ultratex_sparse",
-        0.2,
+        0.4,
         8192,
         1
       ],
       "widgets_values_named": {
         "resolution": 1024,
-        "steps": 25,
+        "steps": 4,
         "seed": 12345,
         "control_after_generate": "fixed",
         "guidance": 4,
         "drop_background_tokens": true,
         "memory_factor": 0,
         "attention": "ultratex_sparse",
-        "sparse_topk": 0.2,
+        "sparse_topk": 0.4,
         "token_chunk": 8192,
         "denoise": 1
       }
@@ -939,12 +969,12 @@
       "id": 26,
       "type": "SaveImage",
       "pos": [
-        2037.947698021131,
-        -773.2546343701498
+        2050.636505113416,
+        -488.24313791629254
       ],
       "size": [
         270,
-        58
+        270
       ],
       "flags": {},
       "order": 13,
@@ -978,12 +1008,12 @@
       "id": 27,
       "type": "SaveImage",
       "pos": [
-        1983.6196831844607,
-        351.0960622752657
+        1999.019683184461,
+        346.6960622752657
       ],
       "size": [
         270,
-        58
+        270
       ],
       "flags": {},
       "order": 15,
@@ -1256,13 +1286,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.6209213230591559,
+      "scale": 0.8264462809917354,
       "offset": [
-        -14.736839243056748,
-        641.3129786403824
+        -879.8812915061748,
+        581.3397332396777
       ]
     },
-    "frontendVersion": "1.53.10",
+    "frontendVersion": "1.57.1",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

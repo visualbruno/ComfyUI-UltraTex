@@ -269,6 +269,13 @@ class UltraTexSampler:
                denoise=1.0, init_views=None, keep_mask=None):
         if resolution % 16:
             raise ValueError("UltraTex: resolution must be a multiple of 16")
+        # every UltraTex LoRA (FLUX.1 and FLUX.2, albedo and MR) patches the first image-attention qkv
+        if "diffusion_model.double_blocks.0.img_attn.qkv.weight" not in getattr(model, "patches", {}):
+            raise ValueError(
+                "UltraTex Sampler: the model carries no UltraTex LoRA, so it would generate random content. Load the "
+                "LoRA with 'UltraTex Load LoRA' - ComfyUI's stock 'Load LoRA' cannot read UltraTex LoRA files and "
+                "silently skips them (the console shows 'lora key not loaded')."
+            )
         init_np = keep_np = None
         if init_views is not None:
             if init_views.shape[0] != 6:
@@ -307,10 +314,14 @@ class UltraTexBake:
             },
             "optional": {
                 "metallic_roughness_views": ("IMAGE", {"tooltip": "Views from the MR LoRA: G = roughness, B = metallic."}),
-                "prep_2": ("ULTRATEX_PREP", {"tooltip": "Second rig (UltraTex Rotate Rig) whose views are baked together with the first."}),
-                "albedo_views_2": ("IMAGE", {"tooltip": "Albedo views generated with prep_2."}),
-                "metallic_roughness_views_2": ("IMAGE", {"tooltip": "Metallic-roughness views generated with prep_2."}),
+                "prep_2": ("ULTRATEX_PREP", {"tooltip": "Extra rig(s) baked together with the first: UltraTex Rotate Rig (one) or UltraTex Custom Rig (a list, one per group of 4 views)."}),
+                "albedo_views_2": ("IMAGE", {"tooltip": "Albedo views generated with prep_2 (one set of 6 per rig)."}),
+                "metallic_roughness_views_2": ("IMAGE", {"tooltip": "Metallic-roughness views generated with prep_2 (one set of 6 per rig)."}),
                 "views_2_use": (list(VIEWS_2_CHOICES), {"default": "all", "tooltip": "Which views of the second rig to bake (e.g. drop poor views). With elevation_mode 'rigid' and elevation != 0 only the front (> 0) or back (< 0) view is raised; the side views are rolled."}),
+                "fusion": (["two_band", "legacy"], {"default": "two_band", "tooltip": "two_band: colours blended smoothly across views (low band) while fine detail comes from the best view with a continuous hand-over - no ghosting, no seam lines. legacy: previous 50% average + 50% best view."}),
+                "detail_sharpness": ("FLOAT", {"default": 32.0, "min": 1.0, "max": 128.0, "step": 1.0, "tooltip": "two_band: how strongly the detail band prefers the best view ((q / q_max)^n). Higher = sharper, but view disagreements can show as seams."}),
+                "exposure_match": ("BOOLEAN", {"default": True, "tooltip": "two_band: per-view colour gains (+-15%) estimated on overlaps, front view anchored, to remove brightness seams."}),
+                "hole_fill": (["mesh", "nearest"], {"default": "mesh", "tooltip": "Texels no view sees: mesh = smooth harmonic fill along the mesh surface (follows connectivity), nearest = average of the 4 nearest seen texels in 3D."}),
             },
         }
 
@@ -327,25 +338,42 @@ class UltraTexBake:
     FUNCTION = "bake"
     CATEGORY = CATEGORY
     OUTPUT_NODE = True
+    # every input arrives as a list: the second-rig inputs may hold one item per group (UltraTex Custom Rig)
+    INPUT_IS_LIST = True
 
     def bake(self, prep, albedo_views, texture_size, filename_prefix, view_weight_power, best_view_mix, edge_feather_px,
              metallic_roughness_views=None, prep_2=None, albedo_views_2=None, metallic_roughness_views_2=None,
-             views_2_use="all"):
-        use_2 = VIEWS_2_CHOICES.get(views_2_use)
-        settings = bake_core.BakeSettings(power=view_weight_power, best_view_mix=best_view_mix, edge_px=edge_feather_px)
-        if prep_2 is not None:
-            if prep_2.vertices.shape != prep.vertices.shape or not np.array_equal(prep_2.uvs, prep.uvs):
-                raise ValueError("UltraTex Bake: prep_2 must come from UltraTex Rotate Rig on the same prep (same mesh and UVs)")
-            if albedo_views_2 is None:
-                raise ValueError("UltraTex Bake: prep_2 is connected but albedo_views_2 is not")
+             views_2_use=None, fusion=None, detail_sharpness=None, exposure_match=None, hole_fill=None):
+        prep, albedo_views = prep[0], albedo_views[0]
+        texture_size, filename_prefix = texture_size[0], filename_prefix[0]
+        view_weight_power, best_view_mix, edge_feather_px = view_weight_power[0], best_view_mix[0], edge_feather_px[0]
+        metallic_roughness_views = metallic_roughness_views[0] if metallic_roughness_views else None
+        use_2 = VIEWS_2_CHOICES.get(views_2_use[0] if views_2_use else "all")
+        preps_2, albedo_2, mr_2 = list(prep_2 or []), list(albedo_views_2 or []), list(metallic_roughness_views_2 or [])
+
+        settings = bake_core.BakeSettings(
+            power=view_weight_power, best_view_mix=best_view_mix, edge_px=edge_feather_px,
+            fusion=fusion[0] if fusion else "two_band",
+            detail_power=float(detail_sharpness[0]) if detail_sharpness else 32.0,
+            exposure_match=bool(exposure_match[0]) if exposure_match else True,
+            hole_fill=hole_fill[0] if hole_fill else "mesh",
+        )
+        for p in preps_2:
+            if p.vertices.shape != prep.vertices.shape or not np.array_equal(p.uvs, prep.uvs):
+                raise ValueError("UltraTex Bake: prep_2 must come from UltraTex Rotate Rig / Custom Rig on the same prep (same mesh and UVs)")
+        if preps_2 and len(albedo_2) != len(preps_2):
+            raise ValueError(f"UltraTex Bake: {len(preps_2)} rig(s) on prep_2 but {len(albedo_2)} albedo view set(s) on albedo_views_2")
+        if mr_2 and len(mr_2) != len(preps_2):
+            raise ValueError(f"UltraTex Bake: {len(preps_2)} rig(s) on prep_2 but {len(mr_2)} metallic-roughness view set(s)")
         albedo_sets = [self._views(albedo_views, prep)]
-        if prep_2 is not None:
-            albedo_sets.append((*self._views(albedo_views_2, prep_2), use_2))
+        albedo_sets += [(*self._views(v, p), use_2) for p, v in zip(preps_2, albedo_2)]
         mr_sets = []
         if metallic_roughness_views is not None:
             mr_sets.append(self._views(metallic_roughness_views, prep))
-        if prep_2 is not None and metallic_roughness_views_2 is not None:
-            mr_sets.append((*self._views(metallic_roughness_views_2, prep_2), use_2))
+        mr_sets += [(*self._views(v, p), use_2) for p, v in zip(preps_2, mr_2)]
+        if preps_2:
+            log.info("UltraTex Bake: %d view set(s) (1 + %d extra rig(s): %s)", len(albedo_sets), len(preps_2),
+                     "; ".join(p.rig_label for p in preps_2))
 
         baker = bake_core.Baker(prep, texture_size)
         try:
@@ -353,7 +381,7 @@ class UltraTexBake:
             albedo = bake_core.to_pil(albedo_np)
             orm = orm_np = None
             if mr_sets:
-                orm_np, _ = baker.bake(mr_sets, settings)
+                orm_np, _ = baker.bake(mr_sets, settings, data=True)
                 orm_np[..., 0] = 1.0  # R = occlusion (unused)
                 orm = bake_core.to_pil(orm_np)
             preview = baker.preview(np.asarray(albedo).astype(np.float32) / 255.0)
@@ -420,6 +448,57 @@ class UltraTexRotateRig:
                 elevation, "above" if elevation > 0 else "below", "below" if elevation > 0 else "above", abs(elevation))
         rotated = prep_core.rotate_rig(prep, azimuth, elevation, per_view=per_view)
         return (rotated, _uint8_to_image(_normal_preview(rotated)))
+
+
+class UltraTexCustomRig:
+    """Extra views at arbitrary camera directions, given as lists; every group of 4 becomes one second pass.
+
+    Outputs a LIST (one prep per group): Render Views and the second Sampler then run once per group
+    automatically, and UltraTex Bake takes the whole list on prep_2 / albedo_views_2.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "prep": ("ULTRATEX_PREP",),
+                "azimuths": ("STRING", {"default": "45,135,225,315", "tooltip": "Camera azimuths in degrees, comma separated: 0 = front, 90 = right side, 180 = back, 270 = left side. A multiple of 4 values; each group of 4 is one second pass."}),
+                "elevations": ("STRING", {"default": "20", "tooltip": "Camera elevations in degrees (> 0 from above, < 0 from below), one per azimuth, or a single value for all."}),
+            }
+        }
+
+    RETURN_TYPES = ("ULTRATEX_PREP", "IMAGE")
+    RETURN_NAMES = ("prep", "normal_views")
+    OUTPUT_IS_LIST = (True, True)
+    FUNCTION = "make"
+    CATEGORY = CATEGORY
+
+    @staticmethod
+    def _parse(text: str, name: str) -> list[float]:
+        try:
+            values = [float(v) for v in text.replace(";", ",").split(",") if v.strip()]
+        except ValueError as exc:
+            raise ValueError(f"UltraTex Custom Rig: {name} must be comma-separated numbers ({exc})") from None
+        if not values:
+            raise ValueError(f"UltraTex Custom Rig: {name} is empty")
+        return values
+
+    def make(self, prep, azimuths, elevations):
+        az = self._parse(azimuths, "azimuths")
+        el = self._parse(elevations, "elevations")
+        if len(el) == 1:
+            el = el * len(az)
+        if len(el) != len(az):
+            raise ValueError(f"UltraTex Custom Rig: {len(az)} azimuths but {len(el)} elevations")
+        if len(az) % 4:
+            raise ValueError(f"UltraTex Custom Rig: {len(az)} views - give a multiple of 4 (the sampler always fills the 4 side slots of one pass)")
+        preps, previews = [], []
+        for g in range(0, len(az), 4):
+            p = prep_core.custom_rig(prep, az[g:g + 4], el[g:g + 4])
+            preps.append(p)
+            previews.append(_uint8_to_image(_normal_preview(p)))
+            log.info("UltraTex Custom Rig: group %d = %s", g // 4 + 1, p.rig_label)
+        return (preps, previews)
 
 
 class UltraTexRenderViews:
@@ -537,6 +616,7 @@ NODE_CLASS_MAPPINGS = {
     "UltraTexBake": UltraTexBake,
     "UltraTexLoadMesh": UltraTexLoadMesh,
     "UltraTexRotateRig": UltraTexRotateRig,
+    "UltraTexCustomRig": UltraTexCustomRig,
     "UltraTexRenderViews": UltraTexRenderViews,
     "UltraTexTextEncode": UltraTexTextEncode,
 }
@@ -548,6 +628,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "UltraTexBake": "UltraTex Bake Texture",
     "UltraTexLoadMesh": "UltraText Load Mesh",
     "UltraTexRotateRig": "UltraTex Rotate Rig (second pass)",
+    "UltraTexCustomRig": "UltraTex Custom Rig (views list)",
     "UltraTexRenderViews": "UltraTex Render Views (second pass)",
     "UltraTexTextEncode": "UltraTex Text Encode",
 }

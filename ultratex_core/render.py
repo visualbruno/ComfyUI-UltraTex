@@ -115,6 +115,40 @@ def per_view_rigs(azimuth_deg: float, elevation_deg: float) -> np.ndarray:
     return rigs
 
 
+# azimuth of the canonical side cameras 0..3 (front, left, back, right): 0 = front, 90 = right (+X),
+# 180 = back, 270 = left (-X)
+_SLOT_AZIMUTH = np.array([0.0, 270.0, 180.0, 90.0])
+
+
+def _angle_diff(a, b):
+    return np.abs((np.asarray(a) - np.asarray(b) + 180.0) % 360.0 - 180.0)
+
+
+def custom_rigs(azimuths, elevations) -> tuple[np.ndarray, list[int]]:
+    """(6, 3, 3) per-view rigs for 4 side views given as absolute camera directions.
+
+    azimuth: 0 = front, 90 = right side (+X), 180 = back, 270 = left side; elevation > 0 = from above.
+    Each view goes to the canonical side slot (front / left / back / right) closest in azimuth (the model
+    expects each tile to look roughly like its slot); top / bottom keep the front slot's turn, no tilt.
+    Returns the rigs and, for every input view, the slot it was placed in."""
+    import itertools
+
+    azimuths = np.asarray(azimuths, dtype=np.float64) % 360.0
+    elevations = np.asarray(elevations, dtype=np.float64)
+    if len(azimuths) != 4 or len(elevations) != 4:
+        raise ValueError("custom_rigs needs exactly 4 side views")
+    best = min(itertools.permutations(range(4)),
+               key=lambda perm: _angle_diff(azimuths, _SLOT_AZIMUTH[list(perm)]).sum())
+    up = np.array([0.0, 1.0, 0.0])
+    rigs = np.zeros((6, 3, 3))
+    for i, slot in enumerate(best):
+        turn = rig_rotation(-((azimuths[i] - _SLOT_AZIMUTH[slot] + 180.0) % 360.0 - 180.0), 0.0)
+        rigs[slot] = _axis_angle(np.cross(up, _SIDE_DIRS[slot]), np.radians(elevations[i])) @ turn
+    front_turn = -((azimuths[list(best).index(0)] - 0.0 + 180.0) % 360.0 - 180.0)
+    rigs[4] = rigs[5] = rig_rotation(front_turn, 0.0)
+    return rigs, list(best)
+
+
 def rig_for_view(rig, view: int):
     """A rig is None, one (3, 3) rotation for all views, or a (6, 3, 3) per-view stack."""
     if rig is None:
@@ -198,11 +232,13 @@ class GLRenderer:
     layout(location = 0) out vec4 o_pos;
     layout(location = 1) out vec4 o_nrm;
     layout(location = 2) out vec4 o_depth;
+    layout(location = 3) out vec4 o_face;
     void main() {
         float len_n = length(v_nrm);  // can vanish between opposite vertex normals
         o_pos = vec4(v_pos, 1.0);
         o_nrm = vec4(len_n > 1e-12 ? v_nrm / len_n : vec3(0.0), 1.0);
         o_depth = vec4(v_depth, v_uv, 1.0);
+        o_face = vec4(float(gl_PrimitiveID), 0.0, 0.0, 1.0);  // exact in float32 up to 16.7M faces
     }
     """
 
@@ -230,7 +266,7 @@ class GLRenderer:
         import moderngl
 
         ctx = self.ctx
-        atts = [ctx.texture((size, size), 4, dtype="f4") for _ in range(3)]
+        atts = [ctx.texture((size, size), 4, dtype="f4") for _ in range(4)]
         depth = ctx.depth_renderbuffer((size, size))
         fbo = ctx.framebuffer(color_attachments=atts, depth_attachment=depth)
         fbo.use()
@@ -250,7 +286,8 @@ class GLRenderer:
             att.release()
         depth.release()
         fbo.release()
-        return out  # pos, nrm, (depth, u, v); alpha channel = coverage
+        self.last_face = out[3][..., 0]  # triangle index per pixel (valid where alpha > 0)
+        return out[:3]  # pos, nrm, (depth, u, v); alpha channel = coverage
 
     def render_view(self, view, size: int, rig: np.ndarray | None = None):
         """`view` is a canonical view index or a 3x4 Blender-frame camera-to-world pose; `rig` rotates the

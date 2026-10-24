@@ -9,7 +9,8 @@ from dataclasses import dataclass, field, replace
 import numpy as np
 from PIL import Image
 
-from .render import GLRenderer, encode_normal_world, normalize, per_view_rigs, rig_for_view, rig_rotation, to_single_mesh
+from .render import (GLRenderer, custom_rigs, encode_normal_world, normalize, per_view_rigs, rig_for_view,
+                     rig_rotation, to_single_mesh)
 
 log = logging.getLogger("UltraTex")
 
@@ -161,6 +162,14 @@ def rotate_rig(prep: UltraTexPrep, azimuth: float, elevation: float, per_view: b
     rig = per_view_rigs(azimuth, elevation) if per_view else rig_rotation(azimuth, elevation)
     normal_rgba = render_conditions(prep.vertices, prep.normals, prep.faces, prep.render_size, rig)
     label = f"az {azimuth:g} el {elevation:g}" + (" per-view" if per_view else "")
+    return replace(prep, rig=rig, normal_rgba=normal_rgba, rig_label=label)
+
+
+def custom_rig(prep: UltraTexPrep, azimuths, elevations) -> UltraTexPrep:
+    """One second-pass group: 4 side views at absolute (azimuth, elevation) camera directions."""
+    rig, slots = custom_rigs(azimuths, elevations)
+    normal_rgba = render_conditions(prep.vertices, prep.normals, prep.faces, prep.render_size, rig)
+    label = "custom " + ", ".join(f"{a:g}/{e:g}" for a, e in zip(azimuths, elevations))
     return replace(prep, rig=rig, normal_rgba=normal_rgba, rig_label=label)
 
 

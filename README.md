@@ -16,7 +16,7 @@ memory management, fp8/GGUF weights and offloading all apply.
 | **UltraTex Foreground VAE Decoder** | Replaces the VAE decoder with UltraTex's Foreground-Aware decoder (`decoder.pt`). |
 | **UltraTex Prep (mesh + reference)** | Normalises the mesh, UV-unwraps it (`comfy_gpu`: ComfyUI's GPU unwrapper from the *Unwrap Mesh UVs* node, ~6 s for 500k faces; `xatlas`: CPU, ~4.6 min for 500k faces; or `keep_existing` UVs), renders the 6 canonical G-buffer TexVerse views (world normals + masks) and aligns the reference image to the front view. |
 | **UltraTex Sampler** | UltraTex sampling: background-token dropping, normal-map + reference conditioning, UNO schedule. Outputs the 6 views (in view order front, left, back, right, top, bottom), their masks and the 2×3 atlas. |
-| **UltraTex Bake Texture** | Back-projects the views into a UV texture (visibility + view-angle weighted blend, occlusion fill), saves `output/<prefix>_XXXXX_.glb` (+ albedo / ORM png) and returns a TRIMESH, the texture, an 8-view preview, the GLB path and `model_3d` (connect it straight to *Preview 3D*). |
+| **UltraTex Bake Texture** | Back-projects the views into a UV texture (two-band fusion, exposure matching, mesh hole fill: see [Bake](#bake)), saves `output/<prefix>_XXXXX_.glb` (+ albedo / ORM png) and returns a TRIMESH, the texture, an 8-view preview, the GLB path and `model_3d` (connect it straight to *Preview 3D*). |
 
 ## Models
 
@@ -44,9 +44,30 @@ inputs, cosine 0.9995):
 * **UltraTex Text Encode** instead of CLIP Text Encode: ComfyUI pads FLUX.1's T5 context to 256 tokens,
   UltraTex uses 512 (small effect, but this matches training).
 
-Bake: near-white pixels in a thin band just inside each view's silhouette are ignored (the model
-sometimes draws the outline a few pixels inside the true one and leaves the gap white, which showed up as
-white fringes on sleeves / boots), and view colours are extended past the silhouette before sampling.
+## Bake
+
+`fusion = two_band` (default) splits every view into a low band (Gaussian blur) and a detail band:
+
+* **Low band** (colour, shading) is blended across views with view-angle weights, so seams stay smooth.
+* **Detail band** comes almost only from the view that sees a texel most head-on (`detail_sharpness`,
+  default 32; higher = sharper, but view switches can show), so fine detail is not averaged away. This is
+  what keeps the extra detail when you **upscale the sampler's views before the bake** (any size works;
+  edge feather, blur and depth tolerance scale with the view resolution).
+* `exposure_match`: per-view colour gains estimated on the overlaps (robust, front view anchored, at most
+  ±15%). The model often renders some views brighter (on the dwarf test, the left view is ~25% and the top
+  ~33% brighter than the front in linear light).
+* Blending happens in linear light.
+* `hole_fill = mesh`: texels no view sees (under arms, inside sleeves, under the hat brim) are filled by
+  a smooth harmonic interpolation over the mesh surface, instead of copying the nearest seen texel
+  (`nearest`).
+
+`fusion = legacy` is the previous bake (one weighted blend). Dwarf test, 4K texture: two-band 8.7 s vs
+legacy 13.2 s (6 views), 12.1 s vs 18.4 s (12 views).
+
+Near-white pixels in a thin band just inside each view's silhouette are ignored (the model sometimes
+draws the outline a few pixels inside the true one and leaves the gap white, which showed up as white
+fringes on sleeves / boots), and view colours are extended past the silhouette before sampling.
+Metallic-roughness maps use the same fusion without colour gains or linear-light conversion.
 
 ## Workflow (FLUX.2)
 
@@ -94,6 +115,14 @@ rig (the sampler refuses misaligned `init_views`). Sampler 2 runs `denoise x ste
   pass, which keeps the views consistent (tested at +20°: all four side views clean).
 * `elevation_mode = rigid`: the whole 6-camera rig is tilted, so only the front camera rises; the back
   camera looks from below and the left/right views are rolled sideways (the model renders those poorly).
+
+**UltraTex Custom Rig (views list)** replaces Rotate Rig when you want several extra rings of views:
+`azimuths = 45,135,225,315,45,135,225,315` and `elevations = 20,20,20,20,-20,-20,-20,-20` (azimuth 0 =
+front, 90 = right side, 180 = back, 270 = left side; a single elevation applies to all). Every group of 4
+views is one second pass: each view goes to the closest front / left / back / right slot and is rendered
+exactly at its azimuth / elevation (no roll). The node outputs a list (one prep per group), so Render
+Views and Sampler 2 run once per group by themselves, and UltraTex Bake takes the whole list on `prep_2`
+/ `albedo_views_2`. Time grows with the number of groups (one second pass each).
 
 ### Metallic-roughness
 
